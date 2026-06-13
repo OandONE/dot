@@ -1,0 +1,12 @@
+colors:
+  active: '#FFFFFF'
+  idle: '#808080'
+  multiple: '#FFA500'
+devices:
+  camera: true
+  location: true
+  microphone: true
+  screenshare: true
+settings:
+  auto_delete_logs: 30
+  check_interval: 0.1
