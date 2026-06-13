@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+*.db
+/tmp/dot_*.png
