@@ -65,7 +65,7 @@ pip install psutil pyyaml pygobject --break-system-packages
 ### Clone & Run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Dot.git
+git clone https://github.com/OandONE/Dot.git
 cd Dot
 python3 main.py
 ```
@@ -146,12 +146,12 @@ graph TD
 ## 🤝 Contributing
 
 Pull requests are welcome!  
-Found a bug? Open an [issue](https://github.com/YOUR_USERNAME/Dot/issues).
+Found a bug? Open an [issue](https://github.com/OandONE/Dot/issues).
 
 ### Development
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Dot.git
+git clone https://github.com/OandONE/Dot.git
 cd Dot
 python3 -m venv .venv
 source .venv/bin/activate
