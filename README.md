@@ -13,12 +13,16 @@
 
 | Feature | Description |
 |---------|-------------|
-| 🟢 **Green Dot** | A single app is using your device (in foreground) |
+| 🟢 **Green Dot** | A single app is using your device |
 | 🟠 **Orange Dot** | Multiple apps are accessing your device simultaneously |
 | ⚪ **Gray Dot** | All clear — no activity detected |
 | 📊 **History Log** | SQLite database with timestamps, app names, and duration |
-| ⚙️ **Settings GUI** | Enable/disable monitoring per device, customize colors |
-| 🚀 **Auto-start** | Runs silently on boot, stays in system tray |
+| ⚙️ **Settings GUI** | Enable/disable monitoring per device, customize colors with live preview |
+| 🎨 **Color Picker** | Built-in color chooser for each indicator state |
+| ⏱️ **Configurable Check Interval** | Adjust how often Dot checks for device access (0.1s - 5s) |
+| 🚀 **Auto-start Toggle** | Enable/disable run on boot from Settings |
+| 🔍 **App Menu Entry** | Search "dot" in Activities to launch |
+| 🔒 **Single Instance** | Only one Dot runs at a time |
 | 🐧 **Native Linux** | Built with GTK3 and AppIndicator, integrates with GNOME/Ubuntu |
 
 ---
@@ -49,51 +53,33 @@ If any app accesses your microphone or camera, you'll know immediately.
 - **PipeWire / D-Bus** — Audio/video stream monitoring
 - **psutil** — Process information
 - **YAML** — User configuration
+- **Cairo** — Color preview rendering
 
 ---
 
 ## 📦 Installation
 
-### Prerequisites
-
+### ۱. پیش‌نیازها
 ```bash
-sudo apt update
-sudo apt install gir1.2-appindicator3-0.1 python3-pip python3-gi-cairo xdotool -y
-pip install psutil pyyaml pygobject --break-system-packages
+sudo apt install gir1.2-appindicator3-0.1 python3-pip python3-venv xdotool -y
 ```
 
-### Clone & Run
-
+### ۲. Clone و اجرا
 ```bash
-git clone https://github.com/OandONE/Dot.git
-cd Dot
+git clone https://github.com/OandONE/Dot.git && cd Dot/dot
+python3 -m venv .venv && source .venv/bin/activate
+pip install psutil pyyaml pygobject
 python3 main.py
 ```
 
-### Autostart (run on boot)
-
-Create this file:
-
-**`~/.config/autostart/dot.desktop`**
-
-```ini
-[Desktop Entry]
-Type=Application
-Name=Dot
-Comment=Privacy Indicator
-Exec=python3 /home/YOUR_USERNAME/Dot/main.py
-StartupNotify=false
-Terminal=false
-X-GNOME-Autostart-enabled=true
+### ۳. برای دفعات بعد
+```bash
+cd Dot/dot && source .venv/bin/activate && python3 main.py
 ```
-
-> ⚠️ Replace `YOUR_USERNAME` with your actual Linux username.
-
----
 
 ## 🎨 Configuration
 
-Edit `config.yaml` to customize:
+Edit `config.yaml` or use the built-in Settings GUI:
 
 ```yaml
 devices:
@@ -108,7 +94,7 @@ colors:
   idle: "#808080"        # Gray - no activity
 
 settings:
-  check_interval: 0.1    # seconds
+  check_interval: 0.8    # seconds (0.1 - 5.0)
   auto_delete_logs: 30   # days
 ```
 
@@ -126,20 +112,26 @@ graph TD
     D -->|Read history| G[History Window]
     H[config.yaml] -->|User settings| B
     H -->|Custom colors| E
+    I[Settings GUI] -->|Save| H
+    H -->|Reload| B
 ```
 
 ---
 
 ## 🚧 Roadmap
 
+### v1.3 (Next)
+- [ ] 🛡️ **Secure installation** (`install.sh` + systemd service + `chattr` protection)
+
+### v2.0
+- [ ] 🔔 **Desktop notifications** on device access
+- [ ] 🚫 **Kill Switch** (keyboard shortcut + menu button)
 - [ ] 📍 **Location monitoring** (GPS / GeoClue)
 - [ ] 🖥️ **Screenshare detection** (PipeWire video streams)
-- [ ] 🔔 **Desktop notifications** on access
 - [ ] 📈 **Statistics dashboard**
+- [ ] 🌐 **Web panel** (localhost with authentication)
 - [ ] 🎨 **Custom themes**
-- [ ] 📦 **Debian package** for easy install
-- [ ] 🐧 **Flatpak / Snap** distribution
-- [ ] 🖥️ **KDE Plasma** support
+- [ ] 📦 **Debian/Flatpak/Snap** packages
 
 ---
 
@@ -152,7 +144,7 @@ Found a bug? Open an [issue](https://github.com/OandONE/Dot/issues).
 
 ```bash
 git clone https://github.com/OandONE/Dot.git
-cd Dot
+cd Dot/dot
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -171,7 +163,7 @@ MIT © [OandONE] (2026)
 
 - Inspired by Android 12 Privacy Indicators
 - Built for the Linux community with ❤️
-- Thanks to the PipeWire and GTK teams
+- Thanks to PipeWire, GTK, and the open-source community
 
 ---
 
