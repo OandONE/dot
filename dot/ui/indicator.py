@@ -1,8 +1,8 @@
-import gi
+import gi # type: ignore
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
-from gi.repository import Gtk, GLib
-from gi.repository import AppIndicator3 as AppIndicator
+from gi.repository import Gtk, GLib # pyright: ignore[reportMissingImports, reportAttributeAccessIssue]
+from gi.repository import AppIndicator3 as AppIndicator # type: ignore
 
 from core.config import load_config
 from core.watcher import Watcher
@@ -50,7 +50,7 @@ class DotIndicator:
         settings_item = Gtk.MenuItem(label="⚙️ Settings")
         settings_item.connect("activate", self.show_settings)
         self.menu.append(settings_item)
-        
+
         self.menu.append(Gtk.SeparatorMenuItem())
         
         quit_item = Gtk.MenuItem(label="❌ Quit")
@@ -63,7 +63,7 @@ class DotIndicator:
         GLib.timeout_add(1000, self.update)
     
     def create_icon(self, status):
-        import cairo
+        import cairo # pyright: ignore[reportMissingImports]
         import os
         
         size = 16
@@ -99,6 +99,8 @@ class DotIndicator:
         return filename
     
     def update(self):
+        self.config = load_config()
+
         status, processes = self.watcher.get_status()
         
         self.indicator.set_icon_full(self.create_icon(status), "Dot")
@@ -117,32 +119,18 @@ class DotIndicator:
             self.cam_item.set_label("Camera: Inactive")
         
         return True
-    
+
     def show_history(self, widget):
         import subprocess
-        subprocess.Popen(['python3', '-c', '''
-import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from ui.windows import HistoryWindow
-w = HistoryWindow()
-w.connect("destroy", Gtk.main_quit)
-w.show_all()
-Gtk.main()
-'''])
+        import os
+        script = os.path.expanduser("~/Dot/dot/show_window.py")
+        subprocess.Popen(["python3", script, "history"])    
 
     def show_settings(self, widget):
         import subprocess
-        subprocess.Popen(['python3', '-c', '''
-import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from ui.windows import SettingsWindow
-w = SettingsWindow()
-w.connect("destroy", Gtk.main_quit)
-w.show_all()
-Gtk.main()
-'''])
-    
+        import os
+        script = os.path.expanduser("~/Dot/dot/show_window.py")
+        subprocess.Popen(["python3", script, "settings"])
+
     def quit(self, widget):
         Gtk.main_quit()
