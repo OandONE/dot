@@ -66,7 +66,7 @@ sudo apt install gir1.2-appindicator3-0.1 python3-pip python3-venv xdotool -y
 
 ### ۲. Clone و اجرا
 ```bash
-git clone https://github.com/OandONE/Dot.git && cd Dot/dot
+git clone https://github.com/OandONE/dot.git && cd dot/dot
 python3 -m venv .venv && source .venv/bin/activate
 pip install psutil pyyaml pygobject
 python3 main.py
@@ -74,7 +74,7 @@ python3 main.py
 
 ### ۳. برای دفعات بعد
 ```bash
-cd Dot/dot && source .venv/bin/activate && python3 main.py
+cd dot/dot && source .venv/bin/activate && python3 main.py
 ```
 
 ## 🎨 Configuration
@@ -143,8 +143,8 @@ Found a bug? Open an [issue](https://github.com/OandONE/Dot/issues).
 ### Development
 
 ```bash
-git clone https://github.com/OandONE/Dot.git
-cd Dot/dot
+git clone https://github.com/OandONE/dot.git
+cd dot/dot
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
