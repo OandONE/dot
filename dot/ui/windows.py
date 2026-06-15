@@ -1,12 +1,11 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 import sqlite3
 import os
 import yaml
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+import cairo
+from core.utils import update_desktop_entry
 
 class HistoryWindow(Gtk.Window):
     def __init__(self):
@@ -35,9 +34,6 @@ class HistoryWindow(Gtk.Window):
         refresh_btn = Gtk.Button(label="🔄 Refresh")
         refresh_btn.connect("clicked", lambda x: self.load_history())
         vbox.pack_start(refresh_btn, False, False, 0)
-        
-        self.set_modal(True)
-        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
     
     def on_show(self, widget):
         self.load_history()
@@ -83,10 +79,11 @@ class HistoryWindow(Gtk.Window):
         row.add(label)
         self.listbox.add(row)
 
+
 class SettingsWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Dot - Settings")
-        self.set_default_size(420, 400)
+        self.set_default_size(420, 480)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_modal(True)
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
@@ -104,6 +101,7 @@ class SettingsWindow(Gtk.Window):
         title = Gtk.Label(label="⚙️ Dot Settings")
         vbox.pack_start(title, False, False, 0)
         
+        # Devices
         devices_frame = Gtk.Frame(label="Devices to Monitor")
         devices_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         devices_box.set_margin_top(10)
@@ -128,7 +126,21 @@ class SettingsWindow(Gtk.Window):
         
         vbox.pack_start(devices_frame, False, False, 0)
         
-        colors_frame = Gtk.Frame(label="Indicator Colors (hex)")
+        autostart_frame = Gtk.Frame(label="Startup")
+        autostart_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        autostart_box.set_margin_top(10)
+        autostart_box.set_margin_bottom(10)
+        autostart_box.set_margin_start(10)
+        autostart_box.set_margin_end(10)
+        autostart_frame.add(autostart_box)
+        
+        self.autostart_check = Gtk.CheckButton(label="Run Dot on system startup")
+        autostart_box.pack_start(self.autostart_check, False, False, 0)
+        
+        vbox.pack_start(autostart_frame, False, False, 0)
+        
+        # Colors
+        colors_frame = Gtk.Frame(label="Indicator Colors")
         colors_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         colors_box.set_margin_top(10)
         colors_box.set_margin_bottom(10)
@@ -137,25 +149,43 @@ class SettingsWindow(Gtk.Window):
         colors_frame.add(colors_box)
         
         self.color_entries = {}
+        self.color_previews = {}
         color_labels = [
-            ('active', '🟢 Active (single app)'),
-            ('multiple', '🟠 Multiple (several apps)'),
-            ('idle', '⚪ Idle (no activity)')
+            ('active', 'Active (single app)'),
+            ('multiple', 'Multiple apps'),
+            ('idle', 'Idle (no activity)')
         ]
         
         for key, label_text in color_labels:
             hbox = Gtk.Box(spacing=10)
+            
+            # دایره رنگی با DrawingArea
+            color_box = Gtk.DrawingArea()
+            color_box.set_size_request(24, 24)
+            color_box.connect("draw", self.on_color_preview_draw, key)
+            
+            # EventBox برای کلیک
+            event_box = Gtk.EventBox()
+            event_box.add(color_box)
+            event_box.connect("button-press-event", self.on_color_box_click, key)
+            hbox.pack_start(event_box, False, False, 0)
+            self.color_previews[key] = color_box
+            
             label = Gtk.Label(label=label_text)
             hbox.pack_start(label, False, False, 0)
+            
             entry = Gtk.Entry()
             entry.set_max_length(7)
             entry.set_width_chars(8)
+            entry.connect("changed", self.on_color_changed, key)
             hbox.pack_end(entry, False, False, 0)
             self.color_entries[key] = entry
+            
             colors_box.pack_start(hbox, False, False, 0)
         
         vbox.pack_start(colors_frame, False, False, 0)
         
+        # Buttons
         btn_box = Gtk.Box(spacing=10)
         btn_box.set_halign(Gtk.Align.END)
         
@@ -175,9 +205,67 @@ class SettingsWindow(Gtk.Window):
         self.mic_check.set_active(config['devices']['microphone'])
         self.cam_check.set_active(config['devices']['camera'])
         for key, entry in self.color_entries.items():
-            entry.set_text(config['colors'][key])
+            if key in config['colors']:
+                entry.set_text(config['colors'][key])
+            self.update_color_preview(key)
+        import os
+        autostart_path = os.path.expanduser("~/.config/autostart/dot.desktop")
+        self.autostart_check.set_active(os.path.exists(autostart_path))
+    
+    def on_color_preview_draw(self, widget, cr, key):
+        color = self.color_entries[key].get_text()
+        if len(color) == 7 and color.startswith('#'):
+            r = int(color[1:3], 16) / 255
+            g = int(color[3:5], 16) / 255
+            b = int(color[5:7], 16) / 255
+        else:
+            r, g, b = 0.5, 0.5, 0.5
+        
+        # دایره رنگی
+        cr.set_source_rgb(r, g, b)
+        cr.arc(12, 12, 10, 0, 2 * 3.14159)
+        cr.fill()
+        
+        # حاشیه سفید
+        cr.set_source_rgb(1, 1, 1)
+        cr.set_line_width(2)
+        cr.arc(12, 12, 10, 0, 2 * 3.14159)
+        cr.stroke()
+    
+    def on_color_box_click(self, widget, event, key):
+        self.on_color_picker(None, key)
+        return True
+    
+    def update_color_preview(self, key):
+        if key in self.color_previews:
+            self.color_previews[key].queue_draw()
+    
+    def on_color_changed(self, entry, key):
+        self.update_color_preview(key)
+    
+    def on_color_picker(self, button, key):
+        current_color = self.color_entries[key].get_text()
+        dialog = Gtk.ColorChooserDialog(title="Pick Color")
+        dialog.set_modal(True)
+        
+        if len(current_color) == 7 and current_color.startswith('#'):
+            r = int(current_color[1:3], 16) / 255
+            g = int(current_color[3:5], 16) / 255
+            b = int(current_color[5:7], 16) / 255
+            rgba = Gdk.RGBA(r, g, b, 1)
+            dialog.set_rgba(rgba)
+        
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            color = dialog.get_rgba()
+            hex_color = f"#{int(color.red*255):02x}{int(color.green*255):02x}{int(color.blue*255):02x}"
+            self.color_entries[key].set_text(hex_color)
+        dialog.destroy()
     
     def on_save(self, button):
+        from core.utils import update_desktop_entry
+        update_desktop_entry()
+
         with open(self.config_path, 'r') as f:
             config = yaml.safe_load(f)
         
@@ -188,5 +276,25 @@ class SettingsWindow(Gtk.Window):
         
         with open(self.config_path, 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
+        
+        import os
+        autostart_dir = os.path.expanduser("~/.config/autostart")
+        autostart_file = os.path.join(autostart_dir, "dot.desktop")
+        home = os.path.expanduser("~")
+        
+        if self.autostart_check.get_active():
+            os.makedirs(autostart_dir, exist_ok=True)
+            with open(autostart_file, 'w') as f:
+                f.write("[Desktop Entry]\n")
+                f.write("Type=Application\n")
+                f.write("Name=Dot\n")
+                f.write("Comment=Privacy Indicator\n")
+                f.write(f"Exec=python3 {home}/Dot/dot/main.py\n")
+                f.write("StartupNotify=false\n")
+                f.write("Terminal=false\n")
+                f.write("X-GNOME-Autostart-enabled=true\n")
+        else:
+            if os.path.exists(autostart_file):
+                os.remove(autostart_file)
         
         self.destroy()
