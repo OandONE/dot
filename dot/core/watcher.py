@@ -2,6 +2,7 @@ import subprocess
 import psutil
 from datetime import datetime
 from core.logger import Logger
+from core.config import load_config
 
 class Watcher:
     def __init__(self, config):
@@ -14,6 +15,7 @@ class Watcher:
         self.cam_start_time = {}
 
     def check_all(self):
+        self.config = load_config()
         if self.config['devices']['microphone']:
             self.check_microphone()
         if self.config['devices']['camera']:
