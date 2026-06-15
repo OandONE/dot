@@ -1,5 +1,5 @@
 colors:
-  active: '#FFFFFF'
+  active: '#00FF00'
   idle: '#808080'
   multiple: '#FFA500'
 devices:
@@ -9,4 +9,4 @@ devices:
   screenshare: true
 settings:
   auto_delete_logs: 30
-  check_interval: 0.1
+  check_interval: 0.8
