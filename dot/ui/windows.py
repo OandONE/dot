@@ -53,7 +53,13 @@ class HistoryWindow(Gtk.Window):
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
-            cursor.execute("SELECT timestamp, device, process, duration FROM access_log ORDER BY timestamp DESC LIMIT 50")
+            cursor.execute("""
+                SELECT timestamp, device, process, duration 
+                FROM access_log 
+                WHERE duration > 0
+                ORDER BY timestamp DESC 
+                LIMIT 50
+            """)
             records = cursor.fetchall()
             
             if not records:
@@ -198,6 +204,31 @@ class SettingsWindow(Gtk.Window):
         btn_box.pack_start(save_btn, False, False, 0)
         
         vbox.pack_end(btn_box, False, False, 0)
+
+        # Sleep Interval
+        interval_frame = Gtk.Frame(label="Check Interval")
+        interval_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        interval_box.set_margin_top(10)
+        interval_box.set_margin_bottom(10)
+        interval_box.set_margin_start(10)
+        interval_box.set_margin_end(10)
+        interval_frame.add(interval_box)
+        
+        hbox = Gtk.Box(spacing=10)
+        label = Gtk.Label(label="Interval (seconds):")
+        hbox.pack_start(label, False, False, 0)
+        
+        self.interval_spin = Gtk.SpinButton.new_with_range(0.1, 5.0, 0.1)
+        self.interval_spin.set_value(0.8)
+        self.interval_spin.connect("value-changed", self.on_interval_changed)
+        hbox.pack_end(self.interval_spin, False, False, 0)
+        interval_box.pack_start(hbox, False, False, 0)
+        
+        self.interval_label = Gtk.Label(label="")
+        interval_box.pack_start(self.interval_label, False, False, 0)
+        self.on_interval_changed(self.interval_spin)
+        
+        vbox.pack_start(interval_frame, False, False, 0)
     
     def on_show(self, widget):
         with open(self.config_path, 'r') as f:
@@ -208,9 +239,10 @@ class SettingsWindow(Gtk.Window):
             if key in config['colors']:
                 entry.set_text(config['colors'][key])
             self.update_color_preview(key)
-        import os
         autostart_path = os.path.expanduser("~/.config/autostart/dot.desktop")
         self.autostart_check.set_active(os.path.exists(autostart_path))
+        if 'settings' in config and 'check_interval' in config['settings']:
+            self.interval_spin.set_value(config['settings']['check_interval'])
     
     def on_color_preview_draw(self, widget, cr, key):
         color = self.color_entries[key].get_text()
@@ -221,12 +253,10 @@ class SettingsWindow(Gtk.Window):
         else:
             r, g, b = 0.5, 0.5, 0.5
         
-        # دایره رنگی
         cr.set_source_rgb(r, g, b)
         cr.arc(12, 12, 10, 0, 2 * 3.14159)
         cr.fill()
         
-        # حاشیه سفید
         cr.set_source_rgb(1, 1, 1)
         cr.set_line_width(2)
         cr.arc(12, 12, 10, 0, 2 * 3.14159)
@@ -262,8 +292,16 @@ class SettingsWindow(Gtk.Window):
             self.color_entries[key].set_text(hex_color)
         dialog.destroy()
     
+    def on_interval_changed(self, spin):
+        val = spin.get_value()
+        if val <= 0.3:
+            self.interval_label.set_text("⚡ Fast (more CPU)")
+        elif val <= 1.0:
+            self.interval_label.set_text("✅ Balanced")
+        else:
+            self.interval_label.set_text("🐢 Slow (less CPU)")
+
     def on_save(self, button):
-        from core.utils import update_desktop_entry
         update_desktop_entry()
 
         with open(self.config_path, 'r') as f:
@@ -277,7 +315,6 @@ class SettingsWindow(Gtk.Window):
         with open(self.config_path, 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
         
-        import os
         autostart_dir = os.path.expanduser("~/.config/autostart")
         autostart_file = os.path.join(autostart_dir, "dot.desktop")
         home = os.path.expanduser("~")
@@ -297,4 +334,11 @@ class SettingsWindow(Gtk.Window):
             if os.path.exists(autostart_file):
                 os.remove(autostart_file)
         
+        if 'settings' not in config:
+            config['settings'] = {}
+        config['settings']['check_interval'] = self.interval_spin.get_value()
+        
+        with open(self.config_path, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+
         self.destroy()
