@@ -24,6 +24,9 @@
 | 🔍 **App Menu Entry** | Search "dot" in Activities to launch |
 | 🔒 **Single Instance** | Only one Dot runs at a time |
 | 🐧 **Native Linux** | Built with GTK3 and AppIndicator, integrates with GNOME/Ubuntu |
+| 🛡️ **Secure Installation** | `install.sh` with systemd service and anti-tamper protection (chattr) |
+| 🔄 **Auto-Restart** | Automatically restarts if killed or crashed |
+| 🔔 **Desktop Notifications** | Get notified when apps access your devices |
 
 ---
 
@@ -59,22 +62,70 @@ If any app accesses your microphone or camera, you'll know immediately.
 
 ## 📦 Installation
 
-### ۱. پیش‌نیازها
+### Prerequisites
+
 ```bash
-sudo apt install gir1.2-appindicator3-0.1 python3-pip python3-venv xdotool -y
+sudo apt install gir1.2-appindicator3-0.1 python3-pip python3-venv xdotool python3-gi python3-gi-cairo -y
 ```
 
-### ۲. Clone و اجرا
+---
+
+### Method 1: Quick Install (Recommended) 🛡️
+
+Installs with systemd service and anti-tamper protection.
+
 ```bash
-git clone https://github.com/OandONE/dot.git && cd dot/dot
-python3 -m venv .venv && source .venv/bin/activate
-pip install psutil pyyaml pygobject
+git clone https://github.com/OandONE/dot.git && cd dot
+bash install.sh
+```
+
+What this does:
+- Copies files to `/opt/dot`
+- Locks critical files with `chattr +i` (even root can't delete without unlock)
+- Creates a systemd service that auto-restarts Dot if killed
+
+---
+
+### Method 2: Manual Install
+
+```bash
+git clone https://github.com/OandONE/dot.git && cd dot
+python3 -m venv .venv --system-site-packages
+source .venv/bin/activate
+pip install psutil pyyaml
 python3 main.py
 ```
 
-### ۳. برای دفعات بعد
+---
+
+### After Installation
+
+- Dot appears in your **system tray** (top-right corner)
+- Search "Dot" in **Activities** to launch
+- Enable **Run on startup** from Settings
+
+---
+
+### Uninstall
+
 ```bash
-cd dot/dot && source .venv/bin/activate && python3 main.py
+# Remove systemd service
+systemctl --user stop dot.service
+systemctl --user disable dot.service
+rm -f ~/.config/systemd/user/dot.service
+
+# Unlock and remove files
+sudo chattr -i /opt/dot/main.py /opt/dot/core/*.py 2>/dev/null
+sudo rm -rf /opt/dot
+
+# Remove autostart
+rm -f ~/.config/autostart/dot.desktop
+
+# Remove desktop entry
+rm -f ~/.local/share/applications/dot.desktop
+
+# Clean temp files
+rm -f /tmp/dot.pid /tmp/dot_*.png
 ```
 
 ## 🎨 Configuration
@@ -120,11 +171,7 @@ graph TD
 
 ## 🚧 Roadmap
 
-### v1.3 (Next)
-- [ ] 🛡️ **Secure installation** (`install.sh` + systemd service + `chattr` protection)
-
 ### v2.0
-- [ ] 🔔 **Desktop notifications** on device access
 - [ ] 🚫 **Kill Switch** (keyboard shortcut + menu button)
 - [ ] 📍 **Location monitoring** (GPS / GeoClue)
 - [ ] 🖥️ **Screenshare detection** (PipeWire video streams)
