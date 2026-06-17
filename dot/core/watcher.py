@@ -3,12 +3,14 @@ import psutil
 from datetime import datetime
 from core.logger import Logger
 from core.config import load_config
+from core.notifier import Notifier
 
 class Watcher:
     def __init__(self, config):
         self.config = config
         self.active_devices = {}
         self.logger = Logger()
+        self.notifier = Notifier()
         self.previous_mic_pids = set()
         self.previous_cam_pids = set()
         self.mic_start_time = {}
@@ -72,9 +74,24 @@ class Watcher:
             self.active_devices['microphone'] = unique_processes if unique_processes else None
             
             current_pids = set(p['pid'] for p in unique_processes)
+
+            for pid in self.previous_mic_pids - current_pids:
+                if pid in self.mic_start_time:
+                    start = self.mic_start_time.pop(pid)
+                    duration = int((datetime.now() - start).total_seconds())
+                    if duration > 0:
+                        self.logger.log_access('microphone', 'ended', pid, duration)
             
             for pid in current_pids - self.previous_mic_pids:
                 self.mic_start_time[pid] = datetime.now()
+            
+            for p in unique_processes:
+                if p['pid'] not in self.previous_mic_pids:
+                    self.notifier.notify('microphone', p['name'], 'started')
+            
+            for pid in self.previous_mic_pids:
+                if pid not in current_pids:
+                    self.notifier.notify('microphone', 'unknown', 'stopped')
             
             for pid in self.previous_mic_pids - current_pids:
                 if pid in self.mic_start_time:
@@ -113,12 +130,26 @@ class Watcher:
                 self.active_devices['camera'] = processes if processes else None
                 
                 current_pids = set(p['pid'] for p in processes)
+
+                for pid in self.previous_cam_pids - current_pids:
+                    if pid in self.cam_start_time:
+                        start = self.cam_start_time.pop(pid)
+                        duration = int((datetime.now() - start).total_seconds())
+                        if duration > 0:
+                            self.logger.log_access('camera', 'ended', pid, duration)
             
                 if current_pids and current_pids != self.previous_cam_pids:
                     for p in processes:
                         self.logger.log_access('camera', p['name'], p['pid'])
                 
                 self.previous_cam_pids = current_pids
+
+                for p in processes:
+                    if p['pid'] not in self.previous_cam_pids:
+                        self.notifier.notify('camera', p['name'], 'started')
+                for pid in self.previous_cam_pids:
+                    if pid not in current_pids:
+                        self.notifier.notify('camera', 'unknown', 'stopped')
             else:
                 self.active_devices['camera'] = None
         except:
