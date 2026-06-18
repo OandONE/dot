@@ -1,6 +1,8 @@
 import gi
+from core.utils import get_appindicator_module
 gi.require_version('Gtk', '3.0')
-gi.require_version('AppIndicator3', '0.1')
+module_name, version = get_appindicator_module()
+gi.require_version(module_name, version)
 from gi.repository import Gtk, GLib
 from core.config import load_config
 from core.watcher import Watcher
