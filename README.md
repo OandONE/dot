@@ -75,7 +75,7 @@ sudo apt install gir1.2-appindicator3-0.1 python3-pip python3-venv xdotool pytho
 Installs with systemd service and anti-tamper protection.
 
 ```bash
-git clone https://github.com/OandONE/dot.git && cd dot
+git clone https://github.com/OandONE/dot.git && cd dot/dot
 bash install.sh
 ```
 
@@ -89,7 +89,7 @@ What this does:
 ### Method 2: Manual Install
 
 ```bash
-git clone https://github.com/OandONE/dot.git && cd dot
+git clone https://github.com/OandONE/dot.git && cd dot/dot
 python3 -m venv .venv --system-site-packages
 source .venv/bin/activate
 pip install psutil pyyaml
