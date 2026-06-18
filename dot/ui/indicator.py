@@ -53,7 +53,7 @@ class DotIndicator:
 
         self.menu.append(Gtk.SeparatorMenuItem())
         
-        quit_item = Gtk.MenuItem(label="❌ Quit")
+        quit_item = Gtk.MenuItem(label="✕ Quit")
         quit_item.connect("activate", self.quit)
         self.menu.append(quit_item)
         
