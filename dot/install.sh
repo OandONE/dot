@@ -9,12 +9,24 @@ sudo mkdir -p /opt/dot
 sudo chown $USER:$USER /opt/dot
 sudo cp -r "$(dirname "$0")"/* /opt/dot/
 
-# 2. Creating virtual environment
+# 2. install packages
+echo "🔍 Detecting distribution..."
+if grep -qi "debian" /etc/os-release && ! grep -qi "ubuntu" /etc/os-release; then
+    echo "📦 Debian detected. Installing packages..."
+    sudo apt update
+    sudo apt install python3-gi python3-gi-cairo gir1.2-ayatanaappindicator3-0.1 xdotool python3-venv python3-pip gnome-shell-extension-appindicator -y
+else
+    echo "📦 Ubuntu detected. Installing packages..."
+    sudo apt update
+    sudo apt install python3-gi python3-gi-cairo gir1.2-appindicator3-0.1 xdotool python3-venv python3-pip -y
+fi
+
+# 3. Creating virtual environment
 echo "🐍 Creating virtual environment..."
 python3 -m venv /opt/dot/.venv --system-site-packages
 /opt/dot/.venv/bin/pip install psutil pyyaml
 
-# 3. files locking
+# 4. files locking
 echo "🔒 Locking files..."
 sudo chown -R root:root /opt/dot
 sudo chmod -R 755 /opt/dot
@@ -23,7 +35,7 @@ sudo chattr +i /opt/dot/core/watcher.py
 sudo chattr +i /opt/dot/core/logger.py
 sudo chattr +i /opt/dot/core/config.py
 
-# 4. create systemd service
+# 5. create systemd service
 echo "⚙️ Creating systemd service..."
 mkdir -p ~/.config/systemd/user/
 cat > ~/.config/systemd/user/dot.service << 'EOF'
@@ -42,7 +54,7 @@ Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
 WantedBy=graphical-session.target
 EOF
 
-# 5. startup service
+# 6. startup service
 echo "🚀 Enabling service..."
 systemctl --user daemon-reload
 systemctl --user enable dot.service
