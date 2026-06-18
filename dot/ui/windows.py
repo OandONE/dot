@@ -5,6 +5,8 @@ import sqlite3
 import os
 import yaml
 import cairo
+import subprocess
+import os as _os
 from core.utils import update_desktop_entry
 
 class HistoryWindow(Gtk.Window):
@@ -304,6 +306,11 @@ class SettingsWindow(Gtk.Window):
     def on_save(self, button):
         update_desktop_entry()
 
+        import subprocess
+
+        subprocess.run(['sudo', 'chattr', '-i', self.config_path])
+        subprocess.run(['sudo', 'chown', _os.getenv('USER'), self.config_path]) # type: ignore
+
         with open(self.config_path, 'r') as f:
             config = yaml.safe_load(f)
         
@@ -312,15 +319,24 @@ class SettingsWindow(Gtk.Window):
         for key, entry in self.color_entries.items():
             config['colors'][key] = entry.get_text()
         
+        if 'settings' not in config:
+            config['settings'] = {}
+        config['settings']['check_interval'] = self.interval_spin.get_value()
+        
         with open(self.config_path, 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
         
-        autostart_dir = os.path.expanduser("~/.config/autostart")
-        autostart_file = os.path.join(autostart_dir, "dot.desktop")
-        home = os.path.expanduser("~")
+        # return ownership and lock
+        subprocess.run(['sudo', 'chown', 'root:root', self.config_path])
+        subprocess.run(['sudo', 'chattr', '+i', self.config_path])
+        
+        # Autostart
+        autostart_dir = _os.path.expanduser("~/.config/autostart")
+        autostart_file = _os.path.join(autostart_dir, "dot.desktop")
+        home = _os.path.expanduser("~")
         
         if self.autostart_check.get_active():
-            os.makedirs(autostart_dir, exist_ok=True)
+            _os.makedirs(autostart_dir, exist_ok=True)
             with open(autostart_file, 'w') as f:
                 f.write("[Desktop Entry]\n")
                 f.write("Type=Application\n")
@@ -331,14 +347,7 @@ class SettingsWindow(Gtk.Window):
                 f.write("Terminal=false\n")
                 f.write("X-GNOME-Autostart-enabled=true\n")
         else:
-            if os.path.exists(autostart_file):
-                os.remove(autostart_file)
-        
-        if 'settings' not in config:
-            config['settings'] = {}
-        config['settings']['check_interval'] = self.interval_spin.get_value()
-        
-        with open(self.config_path, 'w') as f:
-            yaml.dump(config, f, default_flow_style=False)
+            if _os.path.exists(autostart_file):
+                _os.remove(autostart_file)
 
         self.destroy()
