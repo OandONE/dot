@@ -48,9 +48,14 @@ systemctl --user daemon-reload
 systemctl --user enable dot.service
 systemctl --user start dot.service
 
+if ! grep -q "alias dot=" ~/.bash_aliases 2>/dev/null; then
+    echo "alias dot='python3 /opt/dot/cli.py'" >> ~/.bash_aliases
+fi
+
 echo ""
 echo "✅ Dot installed successfully!"
 echo "   - Files locked in /opt/dot"
 echo "   - systemd user service: dot.service"
 echo ""
-echo "Check status: systemctl --user status dot.service"
+echo "👉 Run this to activate CLI: source ~/.bashrc"
+echo "   Then try: dot help"
