@@ -27,6 +27,7 @@
 | 🛡️ **Secure Installation** | `install.sh` with systemd service and anti-tamper protection (chattr) |
 | 🔄 **Auto-Restart** | Automatically restarts if killed or crashed |
 | 🔔 **Desktop Notifications** | Get notified when apps access your devices |
+| 🔧 **CLI Commands** | Block devices, kill apps, check status from terminal |
 
 ---
 
@@ -127,6 +128,27 @@ rm -f ~/.local/share/applications/dot.desktop
 # Clean temp files
 rm -f /tmp/dot.pid /tmp/dot_*.png
 ```
+
+## 🔧 CLI Commands
+
+Dot comes with a powerful command-line interface:
+
+| Command | Description |
+|---------|-------------|
+| `dot help` | Show all commands |
+| `dot start` | Launch the GUI |
+| `dot status` | Show current device status |
+| `dot kill` | Kill all apps using devices |
+| `dot kill mic` | Kill apps using microphone only |
+| `dot kill cam` | Kill apps using camera only |
+| `dot block cam` | Disable camera (unload driver) |
+| `dot unblock cam` | Re-enable camera |
+| `dot block mic` | Mute microphone |
+| `dot unblock mic` | Unmute microphone |
+| `dot history` | Show access history in terminal |
+| `dot settings` | Open Settings window |
+
+> 💡 After install, run `source ~/.bashrc` to activate the `dot` command.
 
 ## 🎨 Configuration
 
