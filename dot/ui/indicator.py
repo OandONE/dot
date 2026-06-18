@@ -1,11 +1,18 @@
 import gi # type: ignore
 gi.require_version('Gtk', '3.0')
-gi.require_version('AppIndicator3', '0.1')
+import os
+import sys
+from core.utils import get_appindicator_module
+module_name, version = get_appindicator_module()
+gi.require_version(module_name, version)
+if module_name == 'AyatanaAppIndicator3':
+    from gi.repository import AyatanaAppIndicator3 as AppIndicator # type: ignore
+else:
+    from gi.repository import AppIndicator3 as AppIndicator # type: ignore
+
 from gi.repository import Gtk, GLib # pyright: ignore[reportMissingImports, reportAttributeAccessIssue]
-from gi.repository import AppIndicator3 as AppIndicator # type: ignore
 
 from core.config import load_config
-from core.watcher import Watcher
 
 import sys
 import os
