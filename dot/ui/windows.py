@@ -21,7 +21,7 @@ class HistoryWindow(Gtk.Window):
         vbox.set_margin_end(10)
         self.add(vbox)
         
-        title = Gtk.Label(label="📊 Device Access History")
+        title = Gtk.Label(label="☰ Device Access History")
         vbox.pack_start(title, False, False, 0)
         
         self.scrolled = Gtk.ScrolledWindow()
@@ -31,7 +31,7 @@ class HistoryWindow(Gtk.Window):
         self.listbox = Gtk.ListBox()
         self.scrolled.add(self.listbox)
         
-        refresh_btn = Gtk.Button(label="🔄 Refresh")
+        refresh_btn = Gtk.Button(label="⟳ Refresh")
         refresh_btn.connect("clicked", lambda x: self.load_history())
         vbox.pack_start(refresh_btn, False, False, 0)
     
@@ -104,7 +104,7 @@ class SettingsWindow(Gtk.Window):
         vbox.set_margin_end(15)
         self.add(vbox)
         
-        title = Gtk.Label(label="⚙️ Dot Settings")
+        title = Gtk.Label(label="⚙ Dot Settings")
         vbox.pack_start(title, False, False, 0)
         
         # Devices
