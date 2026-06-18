@@ -3,12 +3,18 @@
 echo "🛡️ Dot - Installation"
 echo "======================"
 
-# ۱. copy files to /opt/dot
+# 1. copy files to /opt/dot
 echo "📦 Copying files to /opt/dot..."
 sudo mkdir -p /opt/dot
+sudo chown $USER:$USER /opt/dot
 sudo cp -r "$(dirname "$0")"/* /opt/dot/
 
-# ۲. files locking
+# 2. Creating virtual environment
+echo "🐍 Creating virtual environment..."
+python3 -m venv /opt/dot/.venv --system-site-packages
+/opt/dot/.venv/bin/pip install psutil pyyaml
+
+# 3. files locking
 echo "🔒 Locking files..."
 sudo chown -R root:root /opt/dot
 sudo chmod -R 755 /opt/dot
@@ -17,9 +23,10 @@ sudo chattr +i /opt/dot/core/watcher.py
 sudo chattr +i /opt/dot/core/logger.py
 sudo chattr +i /opt/dot/core/config.py
 
-# ۳. createing systemd service
+# 4. create systemd service
 echo "⚙️ Creating systemd service..."
-sudo tee /etc/systemd/system/dot.service > /dev/null << EOF
+mkdir -p ~/.config/systemd/user/
+cat > ~/.config/systemd/user/dot.service << 'EOF'
 [Unit]
 Description=Dot Privacy Indicator
 After=graphical-session-pre.target
@@ -27,25 +34,23 @@ Wants=graphical-session-pre.target
 
 [Service]
 ExecStart=/opt/dot/.venv/bin/python3 /opt/dot/main.py
-User=$USER
 Restart=always
-RestartSec=1
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/\$(id -u)/bus
-Environment=DISPLAY=:0
+RestartSec=2
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
 
 [Install]
 WantedBy=graphical-session.target
 EOF
 
-# ۴. service start
+# 5. startup service
 echo "🚀 Enabling service..."
-sudo systemctl daemon-reload
-sudo systemctl enable dot.service
-sudo systemctl start dot.service
+systemctl --user daemon-reload
+systemctl --user enable dot.service
+systemctl --user start dot.service
 
 echo ""
 echo "✅ Dot installed successfully!"
 echo "   - Files locked in /opt/dot"
-echo "   - systemd service: dot.service"
+echo "   - systemd user service: dot.service"
 echo ""
-echo "Check status: systemctl status dot.service"
+echo "Check status: systemctl --user status dot.service"
