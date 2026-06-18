@@ -28,3 +28,24 @@ Keywords=privacy;microphone;camera;indicator;monitor;
     
     subprocess.run(['update-desktop-database', desktop_dir],
                    capture_output=True)
+
+def detect_distro():
+    try:
+        with open('/etc/os-release') as f:
+            for line in f:
+                if line.startswith('ID='):
+                    distro = line.split('=')[1].strip().strip('"')
+                    if 'ubuntu' in distro:
+                        return 'ubuntu'
+                    elif 'debian' in distro:
+                        return 'debian'
+    except:
+        pass
+    return 'other'
+
+def get_appindicator_module():
+    distro = detect_distro()
+    if distro == 'debian':
+        return 'AyatanaAppIndicator3', '0.1'
+    return 'AppIndicator3', '0.1'
+
