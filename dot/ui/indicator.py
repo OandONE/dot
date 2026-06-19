@@ -130,13 +130,13 @@ class DotIndicator:
     def show_history(self, widget):
         import subprocess
         import os
-        script = os.path.expanduser("~/Dot/dot/show_window.py")
+        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "show_window.py")
         subprocess.Popen(["python3", script, "history"])    
 
     def show_settings(self, widget):
         import subprocess
         import os
-        script = os.path.expanduser("~/Dot/dot/show_window.py")
+        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "show_window.py")
         subprocess.Popen(["python3", script, "settings"])
 
     def quit(self, widget):
