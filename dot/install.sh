@@ -9,6 +9,10 @@ sudo mkdir -p /opt/dot
 sudo chown $USER:$USER /opt/dot
 sudo cp -r "$(dirname "$0")"/* /opt/dot/
 
+# 1.5 sudo no password chattr/chown
+echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/chattr, /usr/bin/chown" | sudo tee /etc/sudoers.d/dot > /dev/null
+sudo chmod 440 /etc/sudoers.d/dot
+
 # 2. install packages
 echo "🔍 Detecting distribution..."
 if grep -qi "debian" /etc/os-release && ! grep -qi "ubuntu" /etc/os-release; then
@@ -28,8 +32,15 @@ python3 -m venv /opt/dot/.venv --system-site-packages
 
 # 4. files locking
 echo "🔒 Locking files..."
-sudo chown -R root:root /opt/dot
-sudo chmod -R 755 /opt/dot
+sudo chown $USER:$USER /opt/dot/config.yaml
+sudo chmod 644 /opt/dot/config.yaml
+
+sudo chattr -i /opt/dot/config.yaml 2>/dev/null
+sudo chown $USER:$USER /opt/dot/config.yaml
+sudo chmod 644 /opt/dot/config.yaml
+
+sudo chown root:root /opt/dot/main.py /opt/dot/core/*.py /opt/dot/ui/*.py
+sudo chmod 755 /opt/dot/main.py /opt/dot/core/*.py /opt/dot/ui/*.py
 sudo chattr +i /opt/dot/main.py
 sudo chattr +i /opt/dot/core/watcher.py
 sudo chattr +i /opt/dot/core/logger.py
