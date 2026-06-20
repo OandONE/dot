@@ -97,7 +97,7 @@ class SettingsWindow(Gtk.Window):
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.connect("show", self.on_show)
         
-        self.config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.yaml'))
+        self.config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml")
         
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         vbox.set_margin_top(15)
@@ -305,8 +305,6 @@ class SettingsWindow(Gtk.Window):
 
     def on_save(self, button):
         update_desktop_entry()
-
-        import subprocess
 
         subprocess.run(['sudo', 'chattr', '-i', self.config_path])
         subprocess.run(['sudo', 'chown', _os.getenv('USER'), self.config_path]) # type: ignore
