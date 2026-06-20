@@ -16,6 +16,7 @@ from core.config import load_config
 
 import sys
 import os
+import subprocess
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 HistoryWindow = None
@@ -128,14 +129,10 @@ class DotIndicator:
         return True
 
     def show_history(self, widget):
-        import subprocess
-        import os
         script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "show_window.py")
         subprocess.Popen(["python3", script, "history"])    
 
     def show_settings(self, widget):
-        import subprocess
-        import os
         script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "show_window.py")
         subprocess.Popen(["python3", script, "settings"])
 
