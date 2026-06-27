@@ -1,12 +1,18 @@
 import subprocess
-import os
+from core.config import load_config
 
 class Notifier:
     def __init__(self):
         self.last_notification = {}
     
     def notify(self, device, process_name, status):
-        """ارسال نوتیفیکیشن فقط وقتی وضعیت تغییر کنه"""
+        """Send Notify"""
+        
+        config = load_config()
+        notifications = config.get('notifications', {})
+        if not notifications.get(device, True):
+            return
+        
         key = f"{device}_{process_name}"
         
         if self.last_notification.get(key) == status:
