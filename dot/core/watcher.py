@@ -110,46 +110,30 @@ class Watcher:
 
     def check_camera(self):
         try:
-            result = subprocess.run(['fuser', '/dev/video0'], 
-                                  capture_output=True, text=True)
-            if result.stdout:
-                pids = result.stdout.strip().split()
+            result = subprocess.run(['fuser', '/dev/video0'], capture_output=True, text=True)
+            output = result.stdout + result.stderr
+            
+            if output.strip():
+                import re
+                numbers = re.findall(r'(\d+)/dev/video0', output)
+                if not numbers:
+                    numbers = re.findall(r'^\s*(\d+)', output.strip())
+                
                 processes = []
-                for pid in pids:
+                for pid_str in numbers:
                     try:
-                        proc = psutil.Process(int(pid))
+                        pid = int(pid_str)
+                        proc = psutil.Process(pid)
                         if proc.name() in ['pipewire', 'pulseaudio', 'wireplumber']:
                             continue
                         processes.append({
-                            'pid': pid,
+                            'pid': str(pid),
                             'name': proc.name(),
                             'foreground': self._is_foreground(pid)
                         })
                     except:
                         pass
                 self.active_devices['camera'] = processes if processes else None
-                
-                current_pids = set(p['pid'] for p in processes)
-
-                for pid in self.previous_cam_pids - current_pids:
-                    if pid in self.cam_start_time:
-                        start = self.cam_start_time.pop(pid)
-                        duration = int((datetime.now() - start).total_seconds())
-                        if duration > 0:
-                            self.logger.log_access('camera', 'ended', pid, duration)
-            
-                if current_pids and current_pids != self.previous_cam_pids:
-                    for p in processes:
-                        self.logger.log_access('camera', p['name'], p['pid'])
-                
-                self.previous_cam_pids = current_pids
-
-                for p in processes:
-                    if p['pid'] not in self.previous_cam_pids:
-                        self.notifier.notify('camera', p['name'], 'started')
-                for pid in self.previous_cam_pids:
-                    if pid not in current_pids:
-                        self.notifier.notify('camera', 'unknown', 'stopped')
             else:
                 self.active_devices['camera'] = None
         except:
