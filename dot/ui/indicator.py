@@ -71,41 +71,24 @@ class DotIndicator:
         GLib.timeout_add(1000, self.update)
     
     def create_icon(self, status):
-        import cairo # pyright: ignore[reportMissingImports]
-        import os
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        assets_dir = os.path.join(base_dir, "assets")
         
-        size = 16
-        color_map = {
-            'idle': self.config['colors']['idle'],
-            'active': self.config['colors']['active'],
-            'multiple': self.config['colors']['multiple']
+        icon_map = {
+            'idle': 'dot-idle.svg',
+            'active': 'dot-mic.svg',  # Defualt Mic
+            'multiple': 'dot-multiple.svg'
         }
-        color_hex = color_map.get(status, self.config['colors']['idle'])
         
-        r = int(color_hex[1:3], 16)
-        g = int(color_hex[3:5], 16)
-        b = int(color_hex[5:7], 16)
+        if status == 'active' and self.watcher:
+            if self.watcher.active_devices.get('camera'):
+                icon_map['active'] = 'dot-cam.svg'
+            elif self.watcher.active_devices.get('microphone'):
+                icon_map['active'] = 'dot-mic.svg'
         
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
-        cr = cairo.Context(surface)
-        
-        cr.set_source_rgba(0, 0, 0, 0)
-        cr.paint()
-        
-        cr.set_source_rgb(r/255, g/255, b/255)
-        cr.arc(size/2, size/2, size/2 - 2, 0, 2 * 3.14159)
-        cr.fill()
-        
-        cr.set_source_rgba(1, 1, 1, 0.4)
-        cr.set_line_width(1)
-        cr.arc(size/2, size/2, size/2 - 2, 0, 2 * 3.14159)
-        cr.stroke()
-        
-        filename = f"/tmp/dot_{status}.png"
-        surface.write_to_png(filename)
-        
-        return filename
-    
+        filename = icon_map.get(status, 'dot-idle.svg')
+        return os.path.join(assets_dir, filename)
+
     def update(self):
         self.config = load_config()
 
