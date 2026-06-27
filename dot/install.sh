@@ -8,6 +8,7 @@ echo "📦 Copying files to /opt/dot..."
 sudo mkdir -p /opt/dot
 sudo chown $USER:$USER /opt/dot
 sudo cp -r "$(dirname "$0")"/* /opt/dot/
+sudo cp -r "$(dirname "$0")"/assets /opt/dot/ 2>/dev/null
 
 # 1.5 sudo no password chattr/chown
 echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/chattr, /usr/bin/chown" | sudo tee /etc/sudoers.d/dot > /dev/null
