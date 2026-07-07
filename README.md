@@ -28,6 +28,7 @@
 | 🔄 **Auto-Restart** | Automatically restarts if killed or crashed |
 | 🔔 **Desktop Notifications** | Get notified when apps access your devices |
 | 🔧 **CLI Commands** | Block devices, kill apps, check status from terminal |
+| 🌐 **Web Panel** | Monitor devices from browser at localhost:8080 |
 
 ---
 
@@ -198,7 +199,7 @@ graph TD
 - [ ] 📍 **Location monitoring** (GPS / GeoClue)
 - [ ] 🖥️ **Screenshare detection** (PipeWire video streams)
 - [ ] 📈 **Statistics dashboard**
-- [ ] 🌐 **Web panel** (localhost with authentication)
+- [ ] 📷 **Fake Camera** (v4l2loopback)
 - [ ] 🎨 **Custom themes**
 - [ ] 📦 **Debian/Flatpak/Snap** packages
 
