@@ -1,8 +1,10 @@
-#!/usr/bin/env python3
 import sys
 import os
 import subprocess
 import glob
+import threading
+import webbrowser
+import time
 import shutil
 
 def print_help():
@@ -115,6 +117,14 @@ def show_history():
 def open_settings():
     subprocess.run(['python3', '/opt/dot/show_window.py', 'settings'])
 
+def start_web():
+    def open_browser():
+        time.sleep(1)
+        webbrowser.open('http://localhost:8080')
+    
+    threading.Thread(target=open_browser).start()
+    subprocess.run([sys.executable, '/opt/dot/web/app.py'])
+
 def main():
     if len(sys.argv) < 2:
         print_help()
@@ -149,9 +159,12 @@ def main():
         print("Run: sudo chattr -i /opt/dot/main.py /opt/dot/core/*.py && sudo rm -rf /opt/dot")
     elif cmd == "help":
         print_help()
+    elif cmd == "web":
+        start_web()
     else:
         print(f"Unknown command: {cmd}")
         print_help()
 
 if __name__ == "__main__":
     main()
+    
