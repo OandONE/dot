@@ -1,12 +1,14 @@
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk # type: ignore
 import sqlite3
 import os
 import yaml
-import cairo
 import subprocess
 import os as _os
+import threading
+import time
+import sys
 from core.utils import update_desktop_entry
 
 class HistoryWindow(Gtk.Window):
@@ -182,6 +184,24 @@ class SettingsWindow(Gtk.Window):
         
         vbox.pack_end(btn_box, False, False, 0)
 
+        # Web Panel
+        web_frame = Gtk.Frame(label="Web Panel")
+        web_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        web_box.set_margin_top(10)
+        web_box.set_margin_bottom(10)
+        web_box.set_margin_start(10)
+        web_box.set_margin_end(10)
+        web_frame.add(web_box)
+        
+        web_label = Gtk.Label(label="Monitor your devices from browser")
+        web_box.pack_start(web_label, False, False, 0)
+        
+        web_btn = Gtk.Button.new_with_label("Open Web Panel (localhost:8080)")
+        web_btn.connect("clicked", self.on_open_web)
+        web_box.pack_start(web_btn, False, False, 0)
+        
+        vbox.pack_start(web_frame, False, False, 0)
+
         # Sleep Interval
         interval_frame = Gtk.Frame(label="Check Interval")
         interval_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -219,6 +239,17 @@ class SettingsWindow(Gtk.Window):
         if 'notifications' in config:
             self.notif_mic_check.set_active(config['notifications'].get('microphone', True))
             self.notif_cam_check.set_active(config['notifications'].get('camera', True))
+    
+    def on_open_web(self, button):
+        def open_browser():
+            time.sleep(2)
+            subprocess.run(['xdg-open', 'http://localhost:8080'])
+        
+        result = subprocess.run(['fuser', '8080/tcp'], capture_output=True)
+        if result.returncode != 0:
+            subprocess.Popen([sys.executable, '/opt/dot/web/app.py'])
+        
+        threading.Thread(target=open_browser).start()
 
     def on_interval_changed(self, spin):
         val = spin.get_value()
