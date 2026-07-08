@@ -1,4 +1,4 @@
-import gi # type: ignore
+import gi
 gi.require_version('Gtk', '3.0')
 import os
 import sys
@@ -60,6 +60,10 @@ class DotIndicator:
         self.menu.append(settings_item)
 
         self.menu.append(Gtk.SeparatorMenuItem())
+
+        self.kill_item = Gtk.MenuItem(label="🚫 Kill All (Ctrl+Shift+K)")
+        self.kill_item.connect("activate", lambda w: self.kill_all_devices())
+        self.menu.append(self.kill_item)
         
         quit_item = Gtk.MenuItem(label="✕ Quit")
         quit_item.connect("activate", self.quit)
@@ -67,7 +71,7 @@ class DotIndicator:
         
         self.menu.show_all()
         self.indicator.set_menu(self.menu)
-        
+
         GLib.timeout_add(1000, self.update)
     
     def create_icon(self, status):
@@ -88,6 +92,11 @@ class DotIndicator:
         
         filename = icon_map.get(status, 'dot-idle.svg')
         return os.path.join(assets_dir, filename)
+    
+    def kill_all_devices(self):
+        subprocess.run(['fuser', '-k', '/dev/video0'])
+        subprocess.run(['fuser', '-k', '/dev/snd/pcmC0D0c'])
+        subprocess.run(['notify-send', '🛑 Dot Kill Switch', 'All devices blocked!', '--icon=security-high'])
 
     def update(self):
         self.config = load_config()
