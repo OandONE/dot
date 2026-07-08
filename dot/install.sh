@@ -76,6 +76,17 @@ if ! grep -q "alias dot=" ~/.bash_aliases 2>/dev/null; then
     echo "alias dot='python3 /opt/dot/cli.py'" >> ~/.bash_aliases
 fi
 
+# Kill Switch shortcut (Ctrl+Shift+K)
+echo "⌨️ Registering Kill Switch shortcut..."
+gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']"
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name "Dot Kill Switch"
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ command "python3 /opt/dot/cli.py kill"
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ binding "<Ctrl><Shift>K"
+
+# Symlink dot CLI to /usr/local/bin
+sudo ln -sf /opt/dot/cli.py /usr/local/bin/dot
+sudo chmod +x /usr/local/bin/dot
+
 echo ""
 echo "✅ Dot installed successfully!"
 echo "   - Files locked in /opt/dot"
