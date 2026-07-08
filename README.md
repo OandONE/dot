@@ -29,6 +29,7 @@
 | 🔔 **Desktop Notifications** | Get notified when apps access your devices |
 | 🔧 **CLI Commands** | Block devices, kill apps, check status from terminal |
 | 🌐 **Web Panel** | Monitor devices from browser at localhost:8080 |
+| 🚫 **Kill Switch** | `Ctrl+Shift+K` — instantly block all devices |
 
 ---
 
@@ -162,11 +163,6 @@ devices:
   location: false        # coming soon
   screenshare: false     # coming soon
 
-colors:
-  active: "#00FF00"      # Green - single app
-  multiple: "#FFA500"    # Orange - multiple apps
-  idle: "#808080"        # Gray - no activity
-
 settings:
   check_interval: 0.8    # seconds (0.1 - 5.0)
   auto_delete_logs: 30   # days
@@ -195,7 +191,6 @@ graph TD
 ## 🚧 Roadmap
 
 ### v2.0
-- [ ] 🚫 **Kill Switch** (keyboard shortcut + menu button)
 - [ ] 📍 **Location monitoring** (GPS / GeoClue)
 - [ ] 🖥️ **Screenshare detection** (PipeWire video streams)
 - [ ] 📈 **Statistics dashboard**
