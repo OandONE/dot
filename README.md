@@ -4,7 +4,7 @@
 > A sleek system tray indicator that shows you exactly when apps are spying through your microphone or camera.
 
 <p align="center">
-  <img src="screenshots/dot-tray.png" alt="Dot in system tray" width="400"/>
+  <img src="screenshots/tray-active.png" alt="Dot in system tray" width="200"/>
 </p>
 
 ---
@@ -45,9 +45,13 @@ If any app accesses your microphone or camera, you'll know immediately.
 
 ## 📸 Screenshots
 
-| System Tray | Menu | History | Settings |
-|-------------|------|---------|----------|
-| ![Tray](screenshots/tray.png) | ![Menu](screenshots/menu.png) | ![History](screenshots/history.png) | ![Settings](screenshots/settings.png) |
+| Tray (Active) | Menu |
+|---------------|------|
+| ![Active](screenshots/tray-active.png) | ![Menu](screenshots/menu.png) |
+
+| History | Settings | Web Panel | Notification |
+|---------|----------|-----------|--------------|
+| ![History](screenshots/history.png) | ![Settings](screenshots/settings.png) | ![Web](screenshots/web-panel.png) | ![Notify](screenshots/notification.png) |
 
 ---
 
