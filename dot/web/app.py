@@ -4,10 +4,31 @@ from flask import Flask, jsonify, render_template_string
 import sqlite3
 import os
 import subprocess
+import time
+import threading
 
 app = Flask(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'dot.db')
+
+last_heartbeat = time.monotonic()
+
+
+@app.route('/api/status')
+def api_status():
+    global last_heartbeat
+    last_heartbeat = time.monotonic()
+    return jsonify(get_status())
+
+
+def browser_watchdog():
+    while True:
+        time.sleep(5)
+        elapsed = time.monotonic() - last_heartbeat
+        if elapsed > 20:
+            print("[WEB] Browser heartbeat timed out. Shutting down.")
+            os._exit(0)
+
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -37,19 +58,25 @@ HTML_TEMPLATE = """
     </style>
     <script>
         async function loadStatus() {
-            const res = await fetch('/api/status');
-            const data = await res.json();
-            document.getElementById('cam-status').textContent = data.camera ? '🟢 Active' : '⚪ Inactive';
-            document.getElementById('cam-status').parentElement.className = 'device ' + (data.camera ? 'active' : 'inactive');
-            document.getElementById('mic-status').textContent = data.microphone ? '🟢 Active' : '⚪ Inactive';
-            document.getElementById('mic-status').parentElement.className = 'device ' + (data.microphone ? 'active' : 'inactive');
+            try {
+                const res = await fetch('/api/status', { cache: 'no-store' });
+                const data = await res.json();
+                document.getElementById('cam-status').textContent = data.camera ? '🟢 Active' : '⚪ Inactive';
+                document.getElementById('cam-status').parentElement.className = 'device ' + (data.camera ? 'active' : 'inactive');
+                document.getElementById('mic-status').textContent = data.microphone ? '🟢 Active' : '⚪ Inactive';
+                document.getElementById('mic-status').parentElement.className = 'device ' + (data.microphone ? 'active' : 'inactive');
+            } catch (error) {
+                console.log("Status request failed:", error);
+            }
         }
+
         async function killAll() {
             if(confirm('Kill all apps using devices?')) {
                 await fetch('/api/kill');
                 loadStatus();
             }
         }
+
         setInterval(loadStatus, 2000);
         window.onload = loadStatus;
     </script>
@@ -144,11 +171,6 @@ def index():
     return render_template_string(HTML_TEMPLATE, history=history)
 
 
-@app.route('/api/status')
-def api_status():
-    return jsonify(get_status())
-
-
 @app.route('/api/kill')
 def api_kill():
     subprocess.run(['fuser', '-k', '/dev/video0'])
@@ -163,6 +185,10 @@ def api_history():
 
 def main():
     print("🟢 Dot Web Panel starting on http://127.0.0.1:8080")
+    threading.Thread(
+        target=browser_watchdog,
+        daemon=True
+    ).start()
     app.run(host='127.0.0.1', port=8080, debug=False)
 
 

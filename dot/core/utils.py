@@ -35,73 +35,51 @@ def get_autostart_file():
 
 
 def is_autostart_enabled():
-    return os.path.isfile(
-        get_autostart_file()
-    )
+    """Return True if Dot's systemd user service is enabled."""
+    try:
+        result = subprocess.run(
+            [
+                "systemctl",
+                "--user",
+                "is-enabled",
+                "dot.service"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        return result.returncode == 0 and result.stdout.strip() == "enabled"
+
+    except (subprocess.SubprocessError, OSError):
+        return False
 
 
 def set_autostart(enabled):
     """
-    Enable or disable Dot autostart.
+    Enable or disable Dot's systemd user service.
 
-    enabled=True:
-        Create the desktop autostart entry.
-
-    enabled=False:
-        Remove the autostart entry.
+    This changes whether Dot starts automatically on login.
+    It intentionally does NOT start/stop the currently running Dot process.
     """
-
-    autostart_file = get_autostart_file()
-
-    if not enabled:
-        try:
-            if os.path.exists(autostart_file):
-                os.remove(autostart_file)
-        except OSError as e:
-            print(f"[AUTOSTART] Could not remove entry: {e}")
-
-        return True
-
     try:
-        os.makedirs(
-            get_autostart_dir(),
-            exist_ok=True
+        command = (
+            ["systemctl", "--user", "enable", "dot.service"]
+            if enabled
+            else ["systemctl", "--user", "disable", "dot.service"]
         )
 
-        main_script = get_main_script()
-
-        # Use the current Python executable rather than
-        # assuming /usr/bin/python3.
-        python_executable = sys.executable
-
-        content = f"""[Desktop Entry]
-Type=Application
-Name=Dot
-Comment=Privacy Indicator
-Exec={python_executable} {main_script}
-StartupNotify=false
-Terminal=false
-X-GNOME-Autostart-enabled=true
-"""
-
-        with open(
-            autostart_file,
-            "w",
-            encoding="utf-8"
-        ) as f:
-            f.write(content)
-
-        os.chmod(
-            autostart_file,
-            0o755
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=10
         )
 
-        return True
+        return result.returncode == 0
 
-    except OSError as e:
-        print(f"[AUTOSTART] Could not create entry: {e}")
+    except (subprocess.SubprocessError, OSError):
         return False
-
 
 def update_desktop_entry():
     """

@@ -58,7 +58,7 @@ Wants=graphical-session-pre.target
 
 [Service]
 ExecStart=/opt/dot/.venv/bin/python3 /opt/dot/main.py
-Restart=always
+Restart=on-failure
 RestartSec=2
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
 

@@ -12,11 +12,8 @@ import time
 import sys
 
 from core.config import load_config, save_config
-from core.utils import (
-    get_install_dir,
-    is_autostart_enabled,
-    set_autostart
-)
+from core.utils import  is_autostart_enabled, set_autostart
+
 
 def get_dot_root():
     return os.path.dirname(
