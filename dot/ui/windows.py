@@ -1,15 +1,56 @@
 import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk # type: ignore
-import sqlite3
+
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk, Gdk, GLib  # type: ignore
+
 import os
-import yaml
+import sqlite3
 import subprocess
-import os as _os
 import threading
 import time
 import sys
-from core.utils import update_desktop_entry
+
+from core.config import load_config, save_config
+from core.utils import (
+    get_install_dir,
+    is_autostart_enabled,
+    set_autostart
+)
+
+def get_dot_root():
+    return os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    )
+
+
+def get_venv_python():
+    return os.path.join(
+        get_dot_root(),
+        ".venv",
+        "bin",
+        "python"
+    )
+
+
+def flask_installed():
+    venv_python = get_venv_python()
+
+    if not os.path.exists(venv_python):
+        return False
+
+    result = subprocess.run(
+        [
+            venv_python,
+            "-c",
+            "import flask"
+        ],
+        capture_output=True
+    )
+
+    return result.returncode == 0
 
 class HistoryWindow(Gtk.Window):
     def __init__(self):
@@ -32,8 +73,38 @@ class HistoryWindow(Gtk.Window):
         self.scrolled.set_vexpand(True)
         vbox.pack_start(self.scrolled, True, True, 0)
         
-        self.listbox = Gtk.ListBox()
-        self.scrolled.add(self.listbox)
+        self.store = Gtk.ListStore(
+            str,
+            str,
+            str,
+            str
+        )
+
+        self.tree = Gtk.TreeView(
+            model=self.store
+        )
+
+        columns = [
+            ("Time", 0),
+            ("Device", 1),
+            ("Process", 2),
+            ("Duration", 3)
+        ]
+
+        for title, column_id in columns:
+            renderer = Gtk.CellRendererText()
+
+            column = Gtk.TreeViewColumn(
+                title,
+                renderer,
+                text=column_id
+            )
+
+            column.set_resizable(True)
+
+            self.tree.append_column(column)
+
+        self.scrolled.add(self.tree)
         
         refresh_btn = Gtk.Button(label="⟳ Refresh")
         refresh_btn.connect("clicked", lambda x: self.load_history())
@@ -43,43 +114,66 @@ class HistoryWindow(Gtk.Window):
         self.load_history()
     
     def load_history(self):
-        for child in self.listbox.get_children():
-            self.listbox.remove(child)
-        
-        db_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'dot.db')
-        
+        self.store.clear()
+
+        db_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "data",
+            "dot.db"
+        )
+
         if not os.path.exists(db_path):
-            self.add_row("No database yet.")
-            self.listbox.show_all()
+            self.store.append([
+                "-",
+                "-",
+                "No database yet",
+                "-"
+            ])
             return
-        
+
         try:
             conn = sqlite3.connect(db_path)
+
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                SELECT timestamp, device, process, duration 
-                FROM access_log 
+                SELECT timestamp, device, process, duration
+                FROM access_log
                 WHERE duration > 0
-                ORDER BY timestamp DESC 
+                ORDER BY timestamp DESC
                 LIMIT 50
             """)
+
             records = cursor.fetchall()
-            
-            if not records:
-                self.add_row("No records found.")
-            else:
-                self.add_row("  TIME                | DEVICE      | PROCESS             | DURATION")
-                self.add_row("  " + "─" * 70)
-                for timestamp, device, process, duration in records:
-                    self.add_row(f"  {timestamp:20} | {device:10} | {process:20} | {duration}s")
-            
+
             conn.close()
-        except Exception as e:
-            self.add_row(f"Error: {e}")
-        
-        self.listbox.show_all()
-    
+
+            if not records:
+                self.store.append([
+                    "-",
+                    "-",
+                    "No records found",
+                    "-"
+                ])
+                return
+
+            for timestamp, device, process, duration in records:
+                self.store.append([
+                    str(timestamp),
+                    str(device),
+                    str(process),
+                    f"{duration}s"
+                ])
+
+        except sqlite3.Error as e:
+            self.store.append([
+                "-",
+                "-",
+                "Database error",
+                str(e)
+            ])
+
     def add_row(self, text):
         row = Gtk.ListBoxRow()
         label = Gtk.Label(label=text)
@@ -98,8 +192,6 @@ class SettingsWindow(Gtk.Window):
         self.set_modal(True)
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.connect("show", self.on_show)
-        
-        self.config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml")
         
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         vbox.set_margin_top(15)
@@ -226,31 +318,289 @@ class SettingsWindow(Gtk.Window):
         self.on_interval_changed(self.interval_spin)
         
         vbox.pack_start(interval_frame, False, False, 0)
+
+    def on_flask_install_finished(self, success, error):
+        if not success:
+            self.show_error(
+                "Could not install Flask.",
+                error
+            )
+            return
+
+        self.start_web_panel(
+            get_venv_python()
+        )
+
+    def start_web_panel(self, python_executable):
+        web_app = os.path.join(
+            get_dot_root(),
+            "web",
+            "app.py"
+        )
+
+        def start():
+            result = subprocess.run(
+                ["fuser", "8080/tcp"],
+                capture_output=True
+            )
+
+            if result.returncode != 0:
+                subprocess.Popen([
+                    python_executable,
+                    web_app
+                ])
+
+                time.sleep(1)
+
+            subprocess.run([
+                "xdg-open",
+                "http://localhost:8080"
+            ])
+
+        threading.Thread(
+            target=start,
+            daemon=True
+        ).start()
+
+    def install_flask_async(self, venv_python, callback):
+        """
+        Install Flask in a background thread while keeping
+        the GTK interface responsive.
+        """
+
+        progress_dialog = Gtk.Dialog(
+            title="Installing Flask",
+            transient_for=self,
+            modal=True
+        )
+
+        progress_dialog.set_default_size(
+            400,
+            150
+        )
+
+        content = progress_dialog.get_content_area()
+
+        box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=12
+        )
+
+        box.set_margin_top(20)
+        box.set_margin_bottom(20)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+
+        label = Gtk.Label(
+            label="Installing Flask..."
+        )
+
+        label.set_halign(Gtk.Align.START)
+
+        progress = Gtk.ProgressBar()
+
+        info = Gtk.Label(
+            label="Please wait. This may take a little while."
+        )
+
+        info.set_halign(Gtk.Align.START)
+
+        box.pack_start(
+            label,
+            False,
+            False,
+            0
+        )
+
+        box.pack_start(
+            progress,
+            False,
+            False,
+            0
+        )
+
+        box.pack_start(
+            info,
+            False,
+            False,
+            0
+        )
+
+        content.add(box)
+        progress_dialog.show_all()
+
+        pulse_source = GLib.timeout_add(
+            100,
+            lambda: self._pulse_progress(progress)
+        )
+
+        def finish(success, error):
+            try:
+                GLib.source_remove(
+                    pulse_source
+                )
+            except Exception:
+                pass
+
+            progress_dialog.destroy()
+
+            callback(
+                success,
+                error
+            )
+
+            return False
+
+        def install():
+            try:
+                result = subprocess.run(
+                    [
+                        venv_python,
+                        "-m",
+                        "pip",
+                        "install",
+                        "Flask"
+                    ],
+                    capture_output=True,
+                    text=True
+                )
+
+                success = (
+                    result.returncode == 0
+                )
+
+                error = (
+                    result.stderr.strip()
+                    if result.stderr
+                    else ""
+                )
+
+            except Exception as e:
+                success = False
+                error = str(e)
+
+            GLib.idle_add(
+                finish,
+                success,
+                error
+            )
+
+        threading.Thread(
+            target=install,
+            daemon=True
+        ).start()
+
+
+    def _pulse_progress(self, progress):
+        progress.pulse()
+        return True
+
+    def show_error(self, title, details):
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text=title
+        )
+
+        if details:
+            dialog.format_secondary_text(
+                details.strip()
+            )
+
+        dialog.run()
+        dialog.destroy()
     
     def on_show(self, widget):
-        with open(self.config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        self.mic_check.set_active(config['devices']['microphone'])
-        self.cam_check.set_active(config['devices']['camera'])
-        autostart_path = os.path.expanduser("~/.config/autostart/dot.desktop")
-        self.autostart_check.set_active(os.path.exists(autostart_path))
-        if 'settings' in config and 'check_interval' in config['settings']:
-            self.interval_spin.set_value(config['settings']['check_interval'])
-        if 'notifications' in config:
-            self.notif_mic_check.set_active(config['notifications'].get('microphone', True))
-            self.notif_cam_check.set_active(config['notifications'].get('camera', True))
-    
-    def on_open_web(self, button):
-        def open_browser():
-            time.sleep(2)
-            subprocess.run(['xdg-open', 'http://localhost:8080'])
-        
-        result = subprocess.run(['fuser', '8080/tcp'], capture_output=True)
-        if result.returncode != 0:
-            subprocess.Popen([sys.executable, '/opt/dot/web/app.py'])
-        
-        threading.Thread(target=open_browser).start()
+        config = load_config()
 
+        devices = config.get("devices", {})
+        settings = config.get("settings", {})
+        notifications = config.get("notifications", {})
+
+        self.mic_check.set_active(
+            devices.get("microphone", True)
+        )
+
+        self.cam_check.set_active(
+            devices.get("camera", True)
+        )
+
+        self.autostart_check.set_active(
+            is_autostart_enabled()
+        )
+
+        self.notif_mic_check.set_active(
+            notifications.get("microphone", False)
+        )
+
+        self.notif_cam_check.set_active(
+            notifications.get("camera", False)
+        )
+
+        self.interval_spin.set_value(
+            float(settings.get("check_interval", 0.8))
+        )
+
+    def on_open_web(self, button):
+        venv_dir = os.path.join(
+            get_dot_root(),
+            ".venv"
+        )
+
+        venv_python = get_venv_python()
+
+        if flask_installed():
+            self.start_web_panel(venv_python)
+            return
+
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="Flask is not installed."
+        )
+
+        dialog.format_secondary_text(
+            "Flask is required for the Web Panel.\n"
+            "Do you want to install it for Dot?"
+        )
+
+        response = dialog.run()
+        dialog.destroy()
+
+        if response != Gtk.ResponseType.YES:
+            return
+
+        # Create venv first if necessary.
+        if not os.path.exists(venv_python):
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "venv",
+                    venv_dir
+                ],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode != 0:
+                self.show_error(
+                    "Could not create Dot virtual environment.",
+                    result.stderr
+                )
+                return
+
+        # Flask installation happens in background.
+        self.install_flask_async(
+            venv_python,
+            self.on_flask_install_finished
+        )
+        
     def on_interval_changed(self, spin):
         val = spin.get_value()
         if val <= 0.3:
@@ -261,51 +611,46 @@ class SettingsWindow(Gtk.Window):
             self.interval_label.set_text("🐢 Slow (less CPU)")
 
     def on_save(self, button):
-        update_desktop_entry()
+        config = load_config()
 
-        subprocess.run(['sudo', 'chattr', '-i', self.config_path])
-        subprocess.run(['sudo', 'chown', _os.getenv('USER'), self.config_path]) # type: ignore
+        if "devices" not in config:
+            config["devices"] = {}
 
-        with open(self.config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        
-        config['devices']['microphone'] = self.mic_check.get_active()
-        config['devices']['camera'] = self.cam_check.get_active()
-        
-        if 'settings' not in config:
-            config['settings'] = {}
-        config['settings']['check_interval'] = self.interval_spin.get_value()
+        if "settings" not in config:
+            config["settings"] = {}
 
-        if 'notifications' not in config:
-            config['notifications'] = {}
-        config['notifications']['microphone'] = self.notif_mic_check.get_active()
-        config['notifications']['camera'] = self.notif_cam_check.get_active()
-        
-        with open(self.config_path, 'w') as f:
-            yaml.dump(config, f, default_flow_style=False)
-        
-        # return ownership and lock
-        subprocess.run(['sudo', 'chown', 'root:root', self.config_path])
-        subprocess.run(['sudo', 'chattr', '+i', self.config_path])
-        
-        # Autostart
-        autostart_dir = _os.path.expanduser("~/.config/autostart")
-        autostart_file = _os.path.join(autostart_dir, "dot.desktop")
-        home = _os.path.expanduser("~")
-        
-        if self.autostart_check.get_active():
-            _os.makedirs(autostart_dir, exist_ok=True)
-            with open(autostart_file, 'w') as f:
-                f.write("[Desktop Entry]\n")
-                f.write("Type=Application\n")
-                f.write("Name=Dot\n")
-                f.write("Comment=Privacy Indicator\n")
-                f.write(f"Exec=python3 {home}/Dot/dot/main.py\n")
-                f.write("StartupNotify=false\n")
-                f.write("Terminal=false\n")
-                f.write("X-GNOME-Autostart-enabled=true\n")
-        else:
-            if _os.path.exists(autostart_file):
-                _os.remove(autostart_file)
+        if "notifications" not in config:
+            config["notifications"] = {}
+
+        config["devices"]["microphone"] = (
+            self.mic_check.get_active()
+        )
+
+        config["devices"]["camera"] = (
+            self.cam_check.get_active()
+        )
+
+        config["settings"]["check_interval"] = (
+            self.interval_spin.get_value()
+        )
+
+        config["settings"]["auto_start"] = (
+            self.autostart_check.get_active()
+        )
+
+        config["notifications"]["microphone"] = (
+            self.notif_mic_check.get_active()
+        )
+
+        config["notifications"]["camera"] = (
+            self.notif_cam_check.get_active()
+        )
+
+        save_config(config)
+
+        # Apply startup setting immediately.
+        set_autostart(
+            self.autostart_check.get_active()
+        )
 
         self.destroy()
