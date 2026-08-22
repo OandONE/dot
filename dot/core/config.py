@@ -7,11 +7,6 @@ CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 
 
 DEFAULT_CONFIG = {
-    "colors": {
-        "active": "#00FF00",
-        "idle": "#808080",
-        "multiple": "#FFA500"
-    },
     "devices": {
         "camera": True,
         "microphone": True,

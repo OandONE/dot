@@ -17,7 +17,7 @@
 | 🟠 **Orange Dot** | Multiple apps are accessing your device simultaneously |
 | ⚪ **Gray Dot** | All clear — no activity detected |
 | 📊 **History Log** | SQLite database with timestamps, app names, and duration |
-| ⚙️ **Settings GUI** | Enable/disable monitoring per device, customize colors with live preview |
+| ⚙️ **Settings GUI** | Enable/disable monitoring per device |
 | 🎨 **Color Picker** | Built-in color chooser for each indicator state |
 | ⏱️ **Configurable Check Interval** | Adjust how often Dot checks for device access (0.1s - 5s) |
 | 🚀 **Auto-start Toggle** | Enable/disable run on boot from Settings |
@@ -62,7 +62,7 @@ If any app accesses your microphone or camera, you'll know immediately.
 - **SQLite3** — Lightweight local logging
 - **PipeWire / D-Bus** — Audio/video stream monitoring
 - **psutil** — Process information
-- **YAML** — User configuration
+- **JSON** — User configuration
 - **Cairo** — Color preview rendering
 
 ---
@@ -99,7 +99,7 @@ What this does:
 git clone https://github.com/OandONE/dot.git && cd dot/dot
 python3 -m venv .venv --system-site-packages
 source .venv/bin/activate
-pip install psutil pyyaml
+pip install -r ../requirements.txt
 python3 main.py
 ```
 
@@ -158,39 +158,27 @@ Dot comes with a powerful command-line interface:
 
 ## 🎨 Configuration
 
-Edit `config.yaml` or use the built-in Settings GUI:
+Edit `config.json` or use the built-in Settings GUI:
 
-```yaml
-devices:
-  microphone: true
-  camera: true
-  location: false        # coming soon
-  screenshare: false     # coming soon
-
-settings:
-  check_interval: 0.8    # seconds (0.1 - 5.0)
-  auto_delete_logs: 30   # days
+```json
+{
+    "devices": {
+        "camera": true,
+        "microphone": true,
+        "location": true,
+        "screenshare": true
+    },
+    "settings": {
+        "auto_delete_logs": 30,
+        "check_interval": 0.8,
+        "auto_start": false
+    },
+    "notifications": {
+        "camera": false,
+        "microphone": false
+    }
+}
 ```
-
----
-
-## 📊 How It Works
-
-```mermaid
-graph TD
-    A[PipeWire / D-Bus] -->|Stream events| B[Watcher]
-    B -->|Check foreground| C[Detector]
-    B -->|Log access| D[SQLite Database]
-    B -->|Get status| E[Indicator]
-    E -->|Show dot| F[System Tray]
-    D -->|Read history| G[History Window]
-    H[config.yaml] -->|User settings| B
-    H -->|Custom colors| E
-    I[Settings GUI] -->|Save| H
-    H -->|Reload| B
-```
-
----
 
 ## 🚧 Roadmap
 
@@ -201,13 +189,16 @@ graph TD
 - [ ] 📷 **Fake Camera** (v4l2loopback)
 - [ ] 🎨 **Custom themes**
 - [ ] 📦 **Debian/Flatpak/Snap** packages
+- [ ] 🔒 **Improve security**
+- [ ] ☁️ **CD/CI**
+- [ ] 🪟 **Support for Other Graphical Environments** KDE, Xfce, LXQt, Cinnamon
 
 ---
 
 ## 🤝 Contributing
 
 Pull requests are welcome!  
-Found a bug? Open an [issue](https://github.com/OandONE/Dot/issues).
+Found a bug? Open an [issue](https://github.com/OandONE/dot/issues).
 
 ### Development
 

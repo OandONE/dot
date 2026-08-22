@@ -1,9 +1,4 @@
 {
-    "colors": {
-        "active": "#00FF00",
-        "idle": "#808080",
-        "multiple": "#FFA500"
-    },
     "devices": {
         "camera": true,
         "microphone": true,
