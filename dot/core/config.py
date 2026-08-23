@@ -16,6 +16,7 @@ DEFAULT_CONFIG = {
     "settings": {
         "auto_delete_logs": 30,
         "check_interval": 0.8,
+        "startup_check_interval": 1.0,
         "auto_start": False
     },
     "notifications": {

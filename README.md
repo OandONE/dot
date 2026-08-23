@@ -171,6 +171,7 @@ Edit `config.json` or use the built-in Settings GUI:
     "settings": {
         "auto_delete_logs": 30,
         "check_interval": 0.8,
+        "startup_check_interval": 0.5,
         "auto_start": false
     },
     "notifications": {

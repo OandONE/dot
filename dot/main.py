@@ -49,12 +49,8 @@ def check_single_instance():
                 old_pid = f.read().strip()
 
             if old_pid.isdigit():
-                result = os.kill(
-                    int(old_pid),
-                    0
-                )
+                os.kill(int(old_pid), 0)
 
-                # If os.kill succeeded, the process exists.
                 print(
                     f"Dot is already running "
                     f"(PID: {old_pid})"
@@ -84,6 +80,15 @@ def check_single_instance():
     atexit.register(remove_pid_file)
 
 
+def run_watcher(watcher):
+    try:
+        watcher.check_all()
+    except Exception as e:
+        print(f"[WATCHER] Error: {e}")
+
+    return True
+
+
 def main():
     check_single_instance()
 
@@ -91,9 +96,22 @@ def main():
 
     watcher = Watcher(config)
 
+    check_interval = float(
+        config.get("settings", {}).get(
+            "check_interval",
+            0.5
+        )
+    )
+
+    check_interval = max(
+        0.1,
+        min(check_interval, 5.0)
+    )
+
     GLib.timeout_add(
-        int(config["settings"]["check_interval"] * 1000),
-        watcher.check_all
+        int(check_interval * 1000),
+        run_watcher,
+        watcher
     )
 
     indicator = DotIndicator(

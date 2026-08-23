@@ -8,8 +8,10 @@
     "settings": {
         "auto_delete_logs": 30,
         "check_interval": 0.8,
+        "startup_check_interval": 0.5,
         "auto_start": false
     },
+
     "notifications": {
         "camera": false,
         "microphone": false

@@ -305,7 +305,7 @@ class SettingsWindow(Gtk.Window):
         hbox.pack_start(label, False, False, 0)
         
         self.interval_spin = Gtk.SpinButton.new_with_range(0.1, 5.0, 0.1)
-        self.interval_spin.set_value(0.8)
+        self.interval_spin.set_value(0.5)
         self.interval_spin.connect("value-changed", self.on_interval_changed)
         hbox.pack_end(self.interval_spin, False, False, 0)
         interval_box.pack_start(hbox, False, False, 0)

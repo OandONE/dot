@@ -52,13 +52,13 @@ echo "⚙️ Creating systemd service..."
 mkdir -p ~/.config/systemd/user/
 cat > ~/.config/systemd/user/dot.service << 'EOF'
 [Unit]
-Description=Dot Privacy Indicator
+Description=Dot Privacy Indicator Startup Watchdog
 After=graphical-session-pre.target
 Wants=graphical-session-pre.target
 
 [Service]
-ExecStart=/opt/dot/.venv/bin/python3 /opt/dot/main.py
-Restart=on-failure
+ExecStart=/opt/dot/.venv/bin/python3 /opt/dot/startup_watchdog.py
+Restart=always
 RestartSec=2
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
 
