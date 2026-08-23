@@ -6,6 +6,9 @@ import threading
 import time
 import webbrowser
 import glob
+import json
+import signal
+import psutil
 
 from core.config import load_config
 from core.watcher import Watcher
@@ -40,32 +43,18 @@ def start_gui():
 
 
 def show_status():
-    """
-    Show the same device state used by Dot itself.
-
-    Important:
-    notify=False prevents `dot status` from generating notifications
-    or modifying access history.
-    """
     try:
         config = load_config()
-
         watcher = Watcher(config)
         watcher.check_all(notify=False)
 
-        microphone = watcher.active_devices.get("microphone")
-        camera = watcher.active_devices.get("camera")
+        mic = watcher.active_devices.get("microphone")
+        cam = watcher.active_devices.get("camera")
+        scr = watcher.active_devices.get("screenshare")   # <-- جدید
 
-        print(
-            f"📷 Camera: "
-            f"{'🟢 Active' if camera else '⚪ Inactive'}"
-        )
-
-        print(
-            f"🎤 Microphone: "
-            f"{'🟢 Active' if microphone else '⚪ Inactive'}"
-        )
-
+        print(f"📷 Camera: {'🟢 Active' if cam else '⚪ Inactive'}")
+        print(f"🎤 Microphone: {'🟢 Active' if mic else '⚪ Inactive'}")
+        print(f"🖥️ Screenshare: {'🟢 Active' if scr else '⚪ Inactive'}")   # <-- جدید
     except Exception as e:
         print(f"Could not check status: {e}")
 
@@ -115,83 +104,72 @@ def _mute_mic(mute=True):
 
     return tool
 
-
 def block_device(device):
     if device in ("cam", "camera"):
-        result = subprocess.run(
-            [
-                "sudo",
-                "modprobe",
-                "-r",
-                "uvcvideo"
-            ],
-            capture_output=True,
-            text=True
-        )
-
+        result = subprocess.run(["sudo", "modprobe", "-r", "uvcvideo"], capture_output=True, text=True)
         if result.returncode == 0:
             print("📷 Camera blocked")
         else:
             print(f"📷 Failed: {result.stderr.strip()}")
-
     elif device == "mic":
         tool = _mute_mic(True)
         print(f"🎤 Microphone blocked ({tool})")
-
+    elif device == "screen":
+        try:
+            result = subprocess.run([
+                "gdbus", "call",
+                "--session",
+                "--dest", "org.gnome.Shell.Screencast",
+                "--object-path", "/org/gnome/Shell/Screencast",
+                "--method", "org.gnome.Shell.Screencast.Stop"
+            ], capture_output=True, text=True, timeout=3)
+            
+            if result.returncode == 0:
+                print("🖥️ Screenshare recording stopped successfully.")
+            else:
+                print("🖥️ Trying alternative method...")
+                subprocess.run([
+                    "xdotool", "key", "Ctrl+Alt+Shift+R"
+                ], check=False)
+                print("🖥️ Sent stop recording shortcut (Ctrl+Alt+Shift+R)")
+        except Exception as e:
+            print(f"🖥️ Could not stop screenshare: {e}")
+            print("📌 Please stop screen sharing manually.")
     else:
-        print("Usage: dot block <cam|mic>")
-
+        print("Usage: dot block <cam|mic|screen>")
 
 def unblock_device(device):
     if device in ("cam", "camera"):
-        result = subprocess.run(
-            [
-                "sudo",
-                "modprobe",
-                "uvcvideo"
-            ],
-            capture_output=True,
-            text=True
-        )
-
+        result = subprocess.run(["sudo", "modprobe", "uvcvideo"], capture_output=True, text=True)
         if result.returncode == 0:
             print("📷 Camera unblocked")
         else:
             print(f"📷 Failed: {result.stderr.strip()}")
-
     elif device == "mic":
         tool = _mute_mic(False)
         print(f"🎤 Microphone unblocked ({tool})")
-
+    elif device == "screen":
+        print("🖥️ Screenshare unblocked (restart your sharing app if needed).")
     else:
-        print("Usage: dot unblock <cam|mic>")
+        print("Usage: dot unblock <cam|mic|screen>")
 
 
 def kill_all(device=None):
-    if device in ["cam", "camera", "webcam", "video"]:
-        device = "cam"
-
-    elif device in ["mic", "microphone", "audio"]:
-        device = "mic"
-
-    if device == "mic" or device is None:
+    if device in ["mic", "microphone", "audio"]:
         devices = glob.glob("/dev/snd/pcm*")
-
         for dev in devices:
-            subprocess.run(
-                ["fuser", "-k", dev],
-                check=False
-            )
-
-    if device == "cam" or device is None:
-        subprocess.run(
-            ["fuser", "-k", "/dev/video0"],
-            check=False
-        )
-
-    if device:
-        print(f"☠️ All apps using {device} killed")
+            subprocess.run(["fuser", "-k", dev], check=False)
+    elif device in ["cam", "camera", "webcam", "video"]:
+        subprocess.run(["fuser", "-k", "/dev/video0"], check=False)
+    elif device in ["screen", "screenshare", "share"]:
+        subprocess.run(["pkill", "-f", "pipewire.*screen"], check=False)
+        print("🖥️ Screenshare processes killed (if any)")
     else:
+        # kill all
+        subprocess.run(["fuser", "-k", "/dev/video0"], check=False)
+        for dev in glob.glob("/dev/snd/pcm*"):
+            subprocess.run(["fuser", "-k", dev], check=False)
+        subprocess.run(["pkill", "-f", "pipewire.*screen"], check=False)
         print("☠️ All apps using devices killed")
 
 

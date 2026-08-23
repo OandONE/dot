@@ -191,6 +191,7 @@ Edit `config.json` or use the built-in Settings GUI:
 - [ ] 🎨 **Custom themes**
 - [ ] 📦 **Debian/Flatpak/Snap** packages
 - [ ] 🔒 **Improve security**
+- [ ] 🧩 **Plugin/Extension**
 - [ ] ☁️ **CD/CI**
 - [ ] 🪟 **Support for Other Graphical Environments** KDE, Xfce, LXQt, Cinnamon
 

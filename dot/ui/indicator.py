@@ -48,6 +48,10 @@ class DotIndicator:
         self.cam_item = Gtk.MenuItem(label="Camera: Inactive")
         self.cam_item.set_sensitive(False)
         self.menu.append(self.cam_item)
+
+        self.scr_item = Gtk.MenuItem(label="Screenshare: Inactive")
+        self.scr_item.set_sensitive(False)
+        self.menu.append(self.scr_item)
         
         self.menu.append(Gtk.SeparatorMenuItem())
         
@@ -78,17 +82,24 @@ class DotIndicator:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         assets_dir = os.path.join(base_dir, "assets")
         
+        if status == 'active' and self.watcher:
+            if self.watcher.active_devices.get('screenshare') and not any([
+                self.watcher.active_devices.get('camera'),
+                self.watcher.active_devices.get('microphone')
+            ]):
+                return os.path.join(assets_dir, 'dot-screen.svg')
+            elif self.watcher.active_devices.get('camera'):
+                return os.path.join(assets_dir, 'dot-cam.svg')
+            elif self.watcher.active_devices.get('microphone'):
+                return os.path.join(assets_dir, 'dot-mic.svg')
+            elif self.watcher.active_devices.get('screenshare'):
+                return os.path.join(assets_dir, 'dot-screen.svg')
+        
         icon_map = {
             'idle': 'dot-idle.svg',
-            'active': 'dot-mic.svg',  # Defualt Mic
+            'active': 'dot-mic.svg',
             'multiple': 'dot-multiple.svg'
         }
-        
-        if status == 'active' and self.watcher:
-            if self.watcher.active_devices.get('camera'):
-                icon_map['active'] = 'dot-cam.svg'
-            elif self.watcher.active_devices.get('microphone'):
-                icon_map['active'] = 'dot-mic.svg'
         
         filename = icon_map.get(status, 'dot-idle.svg')
         return os.path.join(assets_dir, filename)
@@ -105,18 +116,29 @@ class DotIndicator:
         
         self.indicator.set_icon_full(self.create_icon(status), "Dot")
         
-        if processes:
-            for device, procs in self.watcher.active_devices.items():
-                if procs:
-                    names = [p['name'] for p in procs]
-                    text = f"{device.capitalize()}: {', '.join(names)}"
-                    if device == 'microphone':
-                        self.mic_item.set_label(text)
-                    elif device == 'camera':
-                        self.cam_item.set_label(text)
+        # Mic
+        mic_procs = self.watcher.active_devices.get("microphone", [])
+        if mic_procs:
+            names = [p['name'] for p in mic_procs]
+            self.mic_item.set_label(f"Microphone: {', '.join(names)}")
         else:
             self.mic_item.set_label("Microphone: Inactive")
+        
+        # Camera
+        cam_procs = self.watcher.active_devices.get("camera", [])
+        if cam_procs:
+            names = [p['name'] for p in cam_procs]
+            self.cam_item.set_label(f"Camera: {', '.join(names)}")
+        else:
             self.cam_item.set_label("Camera: Inactive")
+        
+        # ScreenShare
+        scr_procs = self.watcher.active_devices.get("screenshare", [])
+        if scr_procs:
+            names = [p['name'] for p in scr_procs]
+            self.scr_item.set_label(f"Screenshare: {', '.join(names)}")
+        else:
+            self.scr_item.set_label("Screenshare: Inactive")
         
         return True
 

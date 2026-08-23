@@ -6,6 +6,7 @@ import os
 import subprocess
 import time
 import threading
+import json
 
 app = Flask(__name__)
 
@@ -65,6 +66,8 @@ HTML_TEMPLATE = """
                 document.getElementById('cam-status').parentElement.className = 'device ' + (data.camera ? 'active' : 'inactive');
                 document.getElementById('mic-status').textContent = data.microphone ? '🟢 Active' : '⚪ Inactive';
                 document.getElementById('mic-status').parentElement.className = 'device ' + (data.microphone ? 'active' : 'inactive');
+                document.getElementById('scr-status').textContent = data.screenshare ? '🟢 Active' : '⚪ Inactive';
+                document.getElementById('scr-status').parentElement.className = 'device ' + (data.screenshare ? 'active' : 'inactive');
             } catch (error) {
                 console.log("Status request failed:", error);
             }
@@ -96,6 +99,10 @@ HTML_TEMPLATE = """
                     <h3>🎤 Microphone</h3>
                     <p id="mic-status">⚪ Inactive</p>
                 </div>
+                <div class="device inactive">
+                    <h3>🖥️ Screenshare</h3>
+                    <p id="scr-status">⚪ Inactive</p>
+                </div>
             </div>
         </div>
         
@@ -126,23 +133,28 @@ HTML_TEMPLATE = """
 
 
 def get_status():
-    """Check current device status"""
-    status = {"camera": False, "microphone": False}
-    
+    status = {"camera": False, "microphone": False, "screenshare": False}   # <-- جدید
     try:
         result = subprocess.run(['fuser', '/dev/video0'], capture_output=True, text=True)
         if result.stdout.strip():
             status['camera'] = True
-    except:
-        pass
-    
+    except: pass
     try:
         result = subprocess.run(['fuser', '/dev/snd/pcmC0D0c'], capture_output=True, text=True)
         if result.stdout.strip():
             status['microphone'] = True
-    except:
-        pass
-    
+    except: pass
+    try:
+        result = subprocess.run(['pw-dump'], capture_output=True, text=True, timeout=3)
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            for obj in data:
+                props = obj.get("info", {}).get("props", {})
+                media_class = props.get("media.class", "")
+                if media_class in ("Stream/Output/Video", "Stream/Input/Video"):
+                    status['screenshare'] = True
+                    break
+    except: pass
     return status
 
 

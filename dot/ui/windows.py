@@ -218,14 +218,13 @@ class SettingsWindow(Gtk.Window):
         
         self.cam_check = Gtk.CheckButton(label="📷 Camera")
         devices_box.pack_start(self.cam_check, False, False, 0)
+
+        self.scr_check = Gtk.CheckButton(label="🖥️ Screenshare")
+        devices_box.pack_start(self.scr_check, False, False, 0)
         
         self.loc_check = Gtk.CheckButton(label="📍 Location (coming soon)")
         self.loc_check.set_sensitive(False)
         devices_box.pack_start(self.loc_check, False, False, 0)
-        
-        self.scr_check = Gtk.CheckButton(label="🖥️ Screenshare (coming soon)")
-        self.scr_check.set_sensitive(False)
-        devices_box.pack_start(self.scr_check, False, False, 0)
         
         vbox.pack_start(devices_frame, False, False, 0)
         
@@ -269,6 +268,9 @@ class SettingsWindow(Gtk.Window):
         
         self.notif_cam_check = Gtk.CheckButton(label="🔔 Camera access")
         notif_box.pack_start(self.notif_cam_check, False, False, 0)
+
+        self.notif_scr_check = Gtk.CheckButton(label="🔔 Screenshare access")
+        notif_box.pack_start(self.notif_scr_check, False, False, 0)
         
         vbox.pack_start(notif_frame, False, False, 0)
         
@@ -547,37 +549,22 @@ class SettingsWindow(Gtk.Window):
     
     def on_show(self, widget):
         config = load_config()
-
         devices = config.get("devices", {})
         settings = config.get("settings", {})
         notifications = config.get("notifications", {})
 
-        self.mic_check.set_active(
-            devices.get("microphone", True)
-        )
+        self.mic_check.set_active(devices.get("microphone", True))
+        self.cam_check.set_active(devices.get("camera", True))
+        self.scr_check.set_active(devices.get("screenshare", True))   # <-- جدید
 
-        self.cam_check.set_active(
-            devices.get("camera", True)
-        )
+        self.autostart_check.set_active(is_autostart_enabled())
 
-        self.autostart_check.set_active(
-            is_autostart_enabled()
-        )
+        self.notif_mic_check.set_active(notifications.get("microphone", False))
+        self.notif_cam_check.set_active(notifications.get("camera", False))
+        self.notif_scr_check.set_active(notifications.get("screenshare", False))   # <-- جدید
 
-        self.notif_mic_check.set_active(
-            notifications.get("microphone", False)
-        )
-
-        self.notif_cam_check.set_active(
-            notifications.get("camera", False)
-        )
-
-        self.interval_spin.set_value(
-            float(settings.get("check_interval", 0.8))
-        )
-        self.startup_interval_spin.set_value(
-            float(settings.get("startup_check_interval", 1.0))
-        )
+        self.interval_spin.set_value(float(settings.get("check_interval", 0.8)))
+        self.startup_interval_spin.set_value(float(settings.get("startup_check_interval", 1.0)))
 
     def on_open_web(self, button):
         venv_dir = os.path.join(
@@ -648,49 +635,22 @@ class SettingsWindow(Gtk.Window):
 
     def on_save(self, button):
         config = load_config()
+        if "devices" not in config: config["devices"] = {}
+        if "settings" not in config: config["settings"] = {}
+        if "notifications" not in config: config["notifications"] = {}
 
-        if "devices" not in config:
-            config["devices"] = {}
+        config["devices"]["microphone"] = self.mic_check.get_active()
+        config["devices"]["camera"] = self.cam_check.get_active()
+        config["devices"]["screenshare"] = self.scr_check.get_active()   # <-- جدید
 
-        if "settings" not in config:
-            config["settings"] = {}
+        config["settings"]["check_interval"] = self.interval_spin.get_value()
+        config["settings"]["startup_check_interval"] = self.startup_interval_spin.get_value()
+        config["settings"]["auto_start"] = self.autostart_check.get_active()
 
-        if "notifications" not in config:
-            config["notifications"] = {}
-
-        config["devices"]["microphone"] = (
-            self.mic_check.get_active()
-        )
-
-        config["devices"]["camera"] = (
-            self.cam_check.get_active()
-        )
-
-        config["settings"]["check_interval"] = (
-            self.interval_spin.get_value()
-        )
-
-        config["settings"]["startup_check_interval"] = (
-            self.startup_interval_spin.get_value()
-        )
-
-        config["settings"]["auto_start"] = (
-            self.autostart_check.get_active()
-        )
-
-        config["notifications"]["microphone"] = (
-            self.notif_mic_check.get_active()
-        )
-
-        config["notifications"]["camera"] = (
-            self.notif_cam_check.get_active()
-        )
+        config["notifications"]["microphone"] = self.notif_mic_check.get_active()
+        config["notifications"]["camera"] = self.notif_cam_check.get_active()
+        config["notifications"]["screenshare"] = self.notif_scr_check.get_active()   # <-- جدید
 
         save_config(config)
-
-        # Apply startup setting immediately.
-        set_autostart(
-            self.autostart_check.get_active()
-        )
-
+        set_autostart(self.autostart_check.get_active())
         self.destroy()
