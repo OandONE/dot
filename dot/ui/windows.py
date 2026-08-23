@@ -229,6 +229,7 @@ class SettingsWindow(Gtk.Window):
         
         vbox.pack_start(devices_frame, False, False, 0)
         
+        # Autostart
         autostart_frame = Gtk.Frame(label="Startup")
         autostart_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         autostart_box.set_margin_top(10)
@@ -242,7 +243,7 @@ class SettingsWindow(Gtk.Window):
         
         vbox.pack_start(autostart_frame, False, False, 0)
         
-        # Buttons
+        # Buttons (placed at bottom, but we'll add later after all sections)
         btn_box = Gtk.Box(spacing=10)
         btn_box.set_halign(Gtk.Align.END)
         
@@ -271,8 +272,6 @@ class SettingsWindow(Gtk.Window):
         
         vbox.pack_start(notif_frame, False, False, 0)
         
-        vbox.pack_end(btn_box, False, False, 0)
-
         # Web Panel
         web_frame = Gtk.Frame(label="Web Panel")
         web_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -291,7 +290,7 @@ class SettingsWindow(Gtk.Window):
         
         vbox.pack_start(web_frame, False, False, 0)
 
-        # Sleep Interval
+        # Check Interval
         interval_frame = Gtk.Frame(label="Check Interval")
         interval_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         interval_box.set_margin_top(10)
@@ -299,22 +298,59 @@ class SettingsWindow(Gtk.Window):
         interval_box.set_margin_start(10)
         interval_box.set_margin_end(10)
         interval_frame.add(interval_box)
-        
+
         hbox = Gtk.Box(spacing=10)
         label = Gtk.Label(label="Interval (seconds):")
         hbox.pack_start(label, False, False, 0)
-        
+
         self.interval_spin = Gtk.SpinButton.new_with_range(0.1, 5.0, 0.1)
         self.interval_spin.set_value(0.5)
         self.interval_spin.connect("value-changed", self.on_interval_changed)
         hbox.pack_end(self.interval_spin, False, False, 0)
         interval_box.pack_start(hbox, False, False, 0)
-        
+
         self.interval_label = Gtk.Label(label="")
         interval_box.pack_start(self.interval_label, False, False, 0)
         self.on_interval_changed(self.interval_spin)
-        
+
         vbox.pack_start(interval_frame, False, False, 0)
+
+        # Startup Check Interval
+        startup_interval_frame = Gtk.Frame(label="Startup Check Interval")
+        startup_interval_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        startup_interval_box.set_margin_top(10)
+        startup_interval_box.set_margin_bottom(10)
+        startup_interval_box.set_margin_start(10)
+        startup_interval_box.set_margin_end(10)
+        startup_interval_frame.add(startup_interval_box)
+
+        hbox2 = Gtk.Box(spacing=10)
+        label2 = Gtk.Label(label="Interval (seconds):")
+        hbox2.pack_start(label2, False, False, 0)
+
+        self.startup_interval_spin = Gtk.SpinButton.new_with_range(0.1, 10.0, 0.1)
+        self.startup_interval_spin.set_value(1.0)
+        self.startup_interval_spin.connect("value-changed", self.on_startup_interval_changed)
+        hbox2.pack_end(self.startup_interval_spin, False, False, 0)
+        startup_interval_box.pack_start(hbox2, False, False, 0)
+
+        self.startup_interval_label = Gtk.Label(label="")
+        startup_interval_box.pack_start(self.startup_interval_label, False, False, 0)
+        self.on_startup_interval_changed(self.startup_interval_spin)
+
+        vbox.pack_start(startup_interval_frame, False, False, 0)
+
+        # Buttons (place at the very end)
+        vbox.pack_end(btn_box, False, False, 0)
+
+    def on_startup_interval_changed(self, spin):
+        val = spin.get_value()
+        if val <= 0.3:
+            self.startup_interval_label.set_text("⚡ Fast (more CPU)")
+        elif val <= 1.0:
+            self.startup_interval_label.set_text("✅ Balanced")
+        else:
+            self.startup_interval_label.set_text("🐢 Slow (less CPU)")
 
     def on_flask_install_finished(self, success, error):
         if not success:
@@ -539,6 +575,9 @@ class SettingsWindow(Gtk.Window):
         self.interval_spin.set_value(
             float(settings.get("check_interval", 0.8))
         )
+        self.startup_interval_spin.set_value(
+            float(settings.get("startup_check_interval", 1.0))
+        )
 
     def on_open_web(self, button):
         venv_dir = os.path.join(
@@ -629,6 +668,10 @@ class SettingsWindow(Gtk.Window):
 
         config["settings"]["check_interval"] = (
             self.interval_spin.get_value()
+        )
+
+        config["settings"]["startup_check_interval"] = (
+            self.startup_interval_spin.get_value()
         )
 
         config["settings"]["auto_start"] = (
