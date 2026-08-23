@@ -1,7 +1,7 @@
 # 🟢 Dot - Privacy Indicator for Linux
 
 > **Take back control of your privacy.**  
-> A sleek system tray indicator that shows you exactly when apps are spying through your microphone or camera.
+> A sleek system tray indicator that shows you exactly when apps are spying through your microphone, camera, screen share.
 
 <p align="center">
   <img src="screenshots/tray-active.png" alt="Dot in system tray" width="200"/>
@@ -176,7 +176,8 @@ Edit `config.json` or use the built-in Settings GUI:
     },
     "notifications": {
         "camera": false,
-        "microphone": false
+        "microphone": false,
+        "screenshare": false
     }
 }
 ```
@@ -185,7 +186,6 @@ Edit `config.json` or use the built-in Settings GUI:
 
 ### v2.0
 - [ ] 📍 **Location monitoring** (GPS / GeoClue)
-- [ ] 🖥️ **Screenshare detection** (PipeWire video streams)
 - [ ] 📈 **Statistics dashboard**
 - [ ] 📷 **Fake Camera** (v4l2loopback)
 - [ ] 🎨 **Custom themes**
