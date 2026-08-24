@@ -49,14 +49,17 @@ sudo chattr +i /opt/dot/core/config.py
 
 # 5. create systemd service
 echo "⚙️ Creating systemd service..."
+
 mkdir -p ~/.config/systemd/user/
+
 cat > ~/.config/systemd/user/dot.service << 'EOF'
 [Unit]
 Description=Dot Privacy Indicator Startup Watchdog
-After=graphical-session-pre.target
-Wants=graphical-session-pre.target
+After=graphical-session.target
+Wants=graphical-session.target
 
 [Service]
+Type=simple
 ExecStart=/opt/dot/.venv/bin/python3 /opt/dot/startup_watchdog.py
 Restart=always
 RestartSec=2
