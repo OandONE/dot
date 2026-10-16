@@ -150,6 +150,28 @@ if command -v systemctl >/dev/null 2>&1; then
         echo "⚠️  Could not enable/start the user service in this session."
 fi
 
+# LXQt does not always activate graphical-session.target. Add a session-level
+# autostart entry that starts the existing user service at login. `systemctl
+# start` is idempotent, so this will not launch a second Dot process if the
+# service has already been started by systemd.
+if [[ "$DESKTOP_LOWER" == *lxqt* ]]; then
+    AUTOSTART_DIR="$HOME/.config/autostart"
+    AUTOSTART_FILE="$AUTOSTART_DIR/dot.desktop"
+    mkdir -p "$AUTOSTART_DIR"
+    cat > "$AUTOSTART_FILE" <<'AUTOSTART_EOF'
+[Desktop Entry]
+Type=Application
+Name=Dot Privacy Indicator
+Comment=Start Dot Privacy Indicator
+Exec=systemctl --user start dot.service
+Terminal=false
+OnlyShowIn=LXQt;
+X-LXQt-Need-Tray=true
+AUTOSTART_EOF
+    chmod 644 "$AUTOSTART_FILE"
+    echo "🖥️  Configured LXQt login autostart: $AUTOSTART_FILE"
+fi
+
 # ----- 5. CLI wrapper -----
 echo "🔗 Installing CLI wrapper ..."
 sudo tee /usr/local/bin/dot >/dev/null <<WRAPPER_EOF

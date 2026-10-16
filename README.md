@@ -23,7 +23,7 @@
 | 🚀 **Auto-start Toggle** | Enable/disable run on boot from Settings |
 | 🔍 **App Menu Entry** | Search "dot" in Activities to launch |
 | 🔒 **Single Instance** | Only one Dot runs at a time |
-| 🐧 **Native Linux** | Built with GTK3 and AppIndicator, integrates with GNOME/Ubuntu |
+🐧 Linux Desktop Integration | Modular desktop integration with environment-specific startup handling
 | 🛡️ **Secure Installation** | `install.sh` with systemd service and anti-tamper protection (chattr) |
 | 🔄 **Auto-Restart** | Automatically restarts if killed or crashed |
 | 🔔 **Desktop Notifications** | Get notified when apps access your devices |
@@ -90,6 +90,8 @@ What this does:
 - Copies files to `/opt/dot`
 - Locks critical files with `chattr +i` (even root can't delete without unlock)
 - Creates a systemd service that auto-restarts Dot if killed
+- Configures automatic startup for supported desktop environments
+- Uses LXQt autostart integration when running in an LXQt session
 
 ---
 
@@ -193,7 +195,7 @@ Edit `config.json` or use the built-in Settings GUI:
 - [ ] 🔒 **Improve security**
 - [ ] 🧩 **Plugin/Extension**
 - [ ] ☁️ **CD/CI**
-- [ ] 🪟 **Support for Other Graphical Environments** KDE, Xfce, LXQt, Cinnamon
+* [Input] 🪟 Expand desktop environment support and test KDE, Xfce, LXQt, and Cinnamon compatibility
 
 ---
 
