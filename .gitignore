@@ -1,4 +1,18 @@
+# Python bytecode
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Local databases and generated UI artifacts
 *.db
 /tmp/dot_*.png
+_*.png
+
+# Local test artifacts
+.pytest_cache/
+.coverage
+
+# Local virtual environments and runtime history
+.venv/
+data/

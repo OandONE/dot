@@ -1,6 +1,6 @@
+import importlib
 import os
 import subprocess
-import sys
 
 
 def get_install_dir():
@@ -164,9 +164,32 @@ def detect_distro():
 
 
 def get_appindicator_module():
-    distro = detect_distro()
+    """Return the first AppIndicator binding that can actually be imported.
 
-    if distro == "debian":
-        return "AyatanaAppIndicator3", "0.1"
+    Prefer Ayatana on systems where it is available, but do not infer library
+    availability from the Linux distribution name alone.
+    """
+    try:
+        import gi
+    except ImportError as exc:
+        raise RuntimeError(
+            "PyGObject is unavailable; install the python3-gi system package."
+        ) from exc
 
-    return "AppIndicator3", "0.1"
+    errors = []
+    for module_name, version in (
+        ("AyatanaAppIndicator3", "0.1"),
+        ("AppIndicator3", "0.1"),
+    ):
+        try:
+            gi.require_version(module_name, version)
+            importlib.import_module("gi.repository." + module_name)
+            return module_name, version
+        except (ValueError, ImportError, OSError) as exc:
+            errors.append(f"{module_name}: {exc}")
+
+    details = "; ".join(errors)
+    raise RuntimeError(
+        "No usable AppIndicator binding was found. Install Ayatana or "
+        f"legacy AppIndicator3 bindings. Details: {details}"
+    )

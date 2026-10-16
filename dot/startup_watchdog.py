@@ -28,7 +28,14 @@ def update_environment_from_session():
             if "=" not in line:
                 continue
             key, value = line.split("=", 1)
-            if key in ("DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR"):
+            if key in (
+                "DISPLAY",
+                "WAYLAND_DISPLAY",
+                "XDG_RUNTIME_DIR",
+                "XDG_CURRENT_DESKTOP",
+                "XDG_SESSION_DESKTOP",
+                "DESKTOP_SESSION",
+            ):
                 if key not in os.environ or not os.environ[key]:
                     os.environ[key] = value
     except Exception as e:

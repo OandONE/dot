@@ -1,14 +1,21 @@
 import json
-import psutil
 import re
 import subprocess
 from datetime import datetime
+
+import psutil
+
 from core.logger import Logger
 from core.notifier import Notifier
+from desktop import get_desktop_backend
+
 
 class Watcher:
-    def __init__(self, config):
+    def __init__(self, config, desktop_backend=None):
         self.config = config
+        self.desktop_backend = (
+            desktop_backend if desktop_backend is not None else get_desktop_backend()
+        )
         self.active_devices = {}
         self.logger = Logger()
         self.notifier = Notifier()
@@ -28,57 +35,41 @@ class Watcher:
         if devices.get("microphone", False):
             self.check_microphone(notify=notify)
         else:
-            self.active_devices["microphone"] = None
+            self._reset_device_tracking(
+                "microphone", self.previous_mic_pids, self.mic_start_time
+            )
 
         if devices.get("camera", False):
             self.check_camera(notify=notify)
         else:
-            self.active_devices["camera"] = None
+            self._reset_device_tracking(
+                "camera", self.previous_cam_pids, self.cam_start_time
+            )
 
-        if devices.get("screenshare", False):   # <-- جدید
+        if devices.get("screenshare", False):
             self.check_screenshare(notify=notify)
         else:
-            self.active_devices["screenshare"] = None
+            self._reset_device_tracking(
+                "screenshare", self.previous_scr_pids, self.scr_start_time
+            )
 
         return True
+
+    def _reset_device_tracking(self, device, previous_pids, start_times):
+        """Forget an observation interval when its monitor is disabled.
+
+        Disabling monitoring is not proof that an application stopped using a
+        device, so don't emit a fabricated "stopped" event. Clear stale state
+        so re-enabling the monitor starts a fresh observation interval.
+        """
+        previous_pids.clear()
+        start_times.clear()
+        self.active_devices[device] = None
 
     # Microphone
     def check_microphone(self, notify=True):
         try:
-            result = subprocess.run(["pw-dump"], capture_output=True, text=True, timeout=3)
-            if result.returncode != 0:
-                self.active_devices["microphone"] = None
-                return
-            data = json.loads(result.stdout)
-            processes = []
-            for obj in data:
-                info = obj.get("info", {})
-                props = info.get("props", {})
-                media_class = props.get("media.class", "")
-                if media_class != "Stream/Input/Audio":
-                    continue
-                client_id = props.get("client.id")
-                if not client_id:
-                    continue
-                for client_obj in data:
-                    if str(client_obj.get("id", "")) != str(client_id):
-                        continue
-                    client_props = client_obj.get("info", {}).get("props", {})
-                    app_name = client_props.get("application.name", "unknown")
-                    app_pid = client_props.get("application.process.id")
-                    if not app_pid:
-                        break
-                    try:
-                        pid = int(app_pid)
-                        proc = psutil.Process(pid)
-                        processes.append({
-                            "pid": str(pid),
-                            "name": proc.name() or app_name,
-                            "foreground": self._is_foreground(pid)
-                        })
-                    except (ValueError, psutil.Error):
-                        pass
-                    break
+            processes = self._pipewire_stream_processes({"Stream/Input/Audio"})
             unique_processes = self._unique_processes(processes)
             self.active_devices["microphone"] = unique_processes if unique_processes else None
             current_pids = {p["pid"] for p in unique_processes}
@@ -90,14 +81,25 @@ class Watcher:
                     start_times=self.mic_start_time
                 )
             self.previous_mic_pids = current_pids
-        except (subprocess.SubprocessError, json.JSONDecodeError, OSError, ValueError) as e:
+        except (
+            subprocess.SubprocessError,
+            json.JSONDecodeError,
+            OSError,
+            ValueError,
+            TypeError,
+        ) as e:
             print(f"[MIC] Error: {e}")
             self.active_devices["microphone"] = None
 
     # Camera
     def check_camera(self, notify=True):
         try:
-            result = subprocess.run(["fuser", "/dev/video0"], capture_output=True, text=True, timeout=3)
+            result = subprocess.run(
+                ["fuser", "/dev/video0"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
             output = f"{result.stdout}\n{result.stderr}"
             numbers = re.findall(r"\b(\d+)\b", output)
             processes = []
@@ -134,45 +136,12 @@ class Watcher:
 
     # Screenshare
     def check_screenshare(self, notify=True):
-        """
-        Detect applications sharing the screen via PipeWire video streams.
-        """
+        """Detect applications sharing video streams through PipeWire."""
         try:
-            result = subprocess.run(["pw-dump"], capture_output=True, text=True, timeout=3)
-            if result.returncode != 0:
-                self.active_devices["screenshare"] = None
-                return
-            data = json.loads(result.stdout)
-            processes = []
-            for obj in data:
-                info = obj.get("info", {})
-                props = info.get("props", {})
-                media_class = props.get("media.class", "")
-                # Stream/Output/Video برای ضبط صفحه، Stream/Input/Video برای ورودی ویدئو (بعضی موارد)
-                if media_class not in ("Stream/Output/Video", "Stream/Input/Video"):
-                    continue
-                client_id = props.get("client.id")
-                if not client_id:
-                    continue
-                for client_obj in data:
-                    if str(client_obj.get("id", "")) != str(client_id):
-                        continue
-                    client_props = client_obj.get("info", {}).get("props", {})
-                    app_name = client_props.get("application.name", "unknown")
-                    app_pid = client_props.get("application.process.id")
-                    if not app_pid:
-                        break
-                    try:
-                        pid = int(app_pid)
-                        proc = psutil.Process(pid)
-                        processes.append({
-                            "pid": str(pid),
-                            "name": proc.name() or app_name,
-                            "foreground": self._is_foreground(pid)
-                        })
-                    except (ValueError, psutil.Error):
-                        pass
-                    break
+            processes = self._pipewire_stream_processes({
+                "Stream/Output/Video",
+                "Stream/Input/Video",
+            })
             unique_processes = self._unique_processes(processes)
             self.active_devices["screenshare"] = unique_processes if unique_processes else None
             current_pids = {p["pid"] for p in unique_processes}
@@ -184,10 +153,83 @@ class Watcher:
                     start_times=self.scr_start_time
                 )
             self.previous_scr_pids = current_pids
-        except (subprocess.SubprocessError, json.JSONDecodeError, OSError, ValueError) as e:
+        except (
+            subprocess.SubprocessError,
+            json.JSONDecodeError,
+            OSError,
+            ValueError,
+            TypeError,
+        ) as e:
             print(f"[SCREENSHARE] Error: {e}")
             self.active_devices["screenshare"] = None
 
+    def _pipewire_stream_processes(self, media_classes):
+        """Map matching PipeWire streams to their client processes.
+
+        Building a client index avoids repeatedly scanning the complete pw-dump
+        document for each stream. Invalid or stale entries are skipped safely.
+        """
+        result = subprocess.run(
+            ["pw-dump"], capture_output=True, text=True, timeout=3, check=False
+        )
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(
+                result.returncode, result.args, output=result.stdout, stderr=result.stderr
+            )
+
+        data = json.loads(result.stdout)
+        if not isinstance(data, list):
+            raise ValueError("pw-dump returned an unexpected JSON structure")
+
+        clients_by_id = {}
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            item_id = item.get("id")
+            info = item.get("info")
+            if item_id is not None and isinstance(info, dict):
+                clients_by_id[str(item_id)] = item
+
+        processes = []
+        for stream in data:
+            if not isinstance(stream, dict):
+                continue
+            info = stream.get("info")
+            props = info.get("props", {}) if isinstance(info, dict) else {}
+            if not isinstance(props, dict) or props.get("media.class") not in media_classes:
+                continue
+
+            client_id = props.get("client.id")
+            if client_id is None:
+                continue
+            client = clients_by_id.get(str(client_id))
+            if client is None:
+                continue
+
+            client_info = client.get("info", {})
+            client_props = client_info.get("props", {}) if isinstance(client_info, dict) else {}
+            if not isinstance(client_props, dict):
+                continue
+
+            app_name = client_props.get("application.name", "unknown")
+            app_pid = client_props.get("application.process.id")
+            if app_pid is None:
+                continue
+
+            try:
+                pid = int(app_pid)
+                proc = psutil.Process(pid)
+                process_name = proc.name() or str(app_name)
+                processes.append({
+                    "pid": str(pid),
+                    "name": process_name,
+                    "foreground": self._is_foreground(pid),
+                })
+            except (TypeError, ValueError, psutil.Error):
+                # Clients can exit between pw-dump and process inspection.
+                continue
+
+        return processes
 
     def _process_device_changes(self, device, current_pids, previous_pids, start_times):
         started_pids = current_pids - previous_pids
@@ -224,31 +266,12 @@ class Watcher:
         return result
 
     def _is_foreground(self, pid):
+        """Delegate foreground-window detection to the active desktop backend."""
         try:
-            result = subprocess.run(
-                [
-                    "gdbus", "call", "--session",
-                    "--dest", "org.gnome.Shell",
-                    "--object-path", "/org/gnome/Shell",
-                    "--method", "org.gnome.Shell.Eval",
-                    'global.display.focus_window?.get_wm_class() || ""'
-                ],
-                capture_output=True, text=True, timeout=2
-            )
-            if not result.stdout or "'" not in result.stdout:
-                return False
-            parts = result.stdout.split("'")
-            if len(parts) < 2:
-                return False
-            active_class = parts[1].lower()
-            if not active_class:
-                return False
-            try:
-                proc_name = psutil.Process(int(pid)).name().lower()
-            except (ValueError, psutil.Error):
-                return False
-            return proc_name in active_class or active_class in proc_name
-        except (subprocess.SubprocessError, OSError, ValueError):
+            return bool(self.desktop_backend.is_foreground_process(int(pid)))
+        except Exception:
+            # Desktop integrations are optional; failure to query focus must not
+            # interrupt microphone/camera/screen activity detection.
             return False
 
     def get_status(self):

@@ -6,12 +6,10 @@ import threading
 import time
 import webbrowser
 import glob
-import json
-import signal
-import psutil
 
 from core.config import load_config
 from core.watcher import Watcher
+from desktop import get_desktop_backend
 
 
 def print_help():
@@ -29,6 +27,7 @@ Commands:
   history         Show access history
   settings        Open Settings window
   install         Run install.sh
+  setup-shortcut  Register the desktop Kill Switch shortcut when supported
   uninstall       Remove Dot completely
   web             Open Web Panel
   help            Show this help
@@ -115,26 +114,10 @@ def block_device(device):
         tool = _mute_mic(True)
         print(f"🎤 Microphone blocked ({tool})")
     elif device == "screen":
-        try:
-            result = subprocess.run([
-                "gdbus", "call",
-                "--session",
-                "--dest", "org.gnome.Shell.Screencast",
-                "--object-path", "/org/gnome/Shell/Screencast",
-                "--method", "org.gnome.Shell.Screencast.Stop"
-            ], capture_output=True, text=True, timeout=3)
-            
-            if result.returncode == 0:
-                print("🖥️ Screenshare recording stopped successfully.")
-            else:
-                print("🖥️ Trying alternative method...")
-                subprocess.run([
-                    "xdotool", "key", "Ctrl+Alt+Shift+R"
-                ], check=False)
-                print("🖥️ Sent stop recording shortcut (Ctrl+Alt+Shift+R)")
-        except Exception as e:
-            print(f"🖥️ Could not stop screenshare: {e}")
-            print("📌 Please stop screen sharing manually.")
+        backend = get_desktop_backend()
+        success, message = backend.stop_screenshare()
+        icon = "🖥️" if success else "📌"
+        print(f"{icon} {message}")
     else:
         print("Usage: dot block <cam|mic|screen>")
 
@@ -281,6 +264,12 @@ def main():
             "bash",
             "/opt/dot/install.sh"
         ])
+
+    elif cmd == "setup-shortcut":
+        backend = get_desktop_backend()
+        success, message = backend.register_kill_switch_shortcut("/usr/local/bin/dot kill")
+        icon = "✅" if success else "ℹ️"
+        print(f"{icon} {message}")
 
     elif cmd == "uninstall":
         print(
