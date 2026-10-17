@@ -200,6 +200,56 @@ Edit `config.json` or use the built-in Settings GUI:
 
 ---
 
+## 📁 Project Structure
+
+```.
+├── dot
+│   ├── assets
+│   │   ├── dot-cam.svg
+│   │   ├── dot-idle.svg
+│   │   ├── dot-mic.svg
+│   │   ├── dot-multiple.svg
+│   │   └── dot-screen.svg
+│   ├── cli.py
+│   ├── config.json
+│   ├── core
+│   │   ├── config.py
+│   │   ├── logger.py
+│   │   ├── notifier.py
+│   │   ├── utils.py
+│   │   └── watcher.py
+│   ├── desktop
+│   │   ├── base.py
+│   │   ├── gnome.py
+│   │   └── __init__.py
+│   ├── install.sh
+│   ├── main.py
+│   ├── show_window.py
+│   ├── startup_watchdog.py
+│   ├── ui
+│   │   ├── indicator.py
+│   │   └── windows.py
+│   └── web
+│       ├── app.py
+│       └── requirements-web.txt
+├── LICENSE
+├── README.md
+├── requirements.txt
+├── screenshots
+│   ├── history.png
+│   ├── menu.png
+│   ├── notification.png
+│   ├── settings.png
+│   ├── tray-active.png
+│   └── web-panel.png
+└── tests
+    ├── test_config.py
+    ├── test_desktop.py
+    └── test_watcher.py
+```
+
+---
+
 ## 🤝 Contributing
 
 Pull requests are welcome!  
