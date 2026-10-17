@@ -23,13 +23,14 @@
 | 🚀 **Auto-start Toggle** | Enable/disable run on boot from Settings |
 | 🔍 **App Menu Entry** | Search "dot" in Activities to launch |
 | 🔒 **Single Instance** | Only one Dot runs at a time |
-🐧 Linux Desktop Integration | Modular desktop integration with environment-specific startup handling
+| 🐧 **Linux Desktop Integration** | Modular desktop integration with desktop-specific startup handling |
 | 🛡️ **Secure Installation** | `install.sh` with systemd service and anti-tamper protection (chattr) |
 | 🔄 **Auto-Restart** | Automatically restarts if killed or crashed |
 | 🔔 **Desktop Notifications** | Get notified when apps access your devices |
 | 🔧 **CLI Commands** | Block devices, kill apps, check status from terminal |
 | 🌐 **Web Panel** | Monitor devices from browser at localhost:8080 |
 | 🚫 **Kill Switch** | `Ctrl+Shift+K` — instantly block all devices |
+| 🪟 **All desktop environment** | GNOME, KDE Plasma, Cinnamon, LXQt, Xfce |
 
 ---
 
@@ -90,8 +91,8 @@ What this does:
 - Copies files to `/opt/dot`
 - Locks critical files with `chattr +i` (even root can't delete without unlock)
 - Creates a systemd service that auto-restarts Dot if killed
-- Configures automatic startup for supported desktop environments
-- Uses LXQt autostart integration when running in an LXQt session
+- Configures automatic startup through the user's desktop session
+- Integrates with desktop environments that do not activate `graphical-session.target`
 
 ---
 
@@ -195,7 +196,7 @@ Edit `config.json` or use the built-in Settings GUI:
 - [ ] 🔒 **Improve security**
 - [ ] 🧩 **Plugin/Extension**
 - [ ] ☁️ **CD/CI**
-* [Input] 🪟 Expand desktop environment support and test KDE, Xfce, LXQt, and Cinnamon compatibility
+- [ ] 🪟 Improve desktop environment integration and expand compatibility testing
 
 ---
 
