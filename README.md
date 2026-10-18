@@ -196,7 +196,8 @@ Edit `config.json` or use the built-in Settings GUI:
 - [ ] 🔒 **Improve security**
 - [ ] 🧩 **Plugin/Extension**
 - [ ] ☁️ **CD/CI**
-- [ ] 🪟 Improve desktop environment integration and expand compatibility testing
+- [ ] 🪟 **Improve desktop environment integration and expand compatibility testing**
+- [ ] ⚙️ **Add a filtering layer to ignore the desired processes**
 
 ---
 
